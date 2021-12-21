@@ -1,0 +1,1 @@
+The other file in this directory, named TABLE_DDL contains ALL of the DDL for the database. Each table is seperated so can be added incrementally.

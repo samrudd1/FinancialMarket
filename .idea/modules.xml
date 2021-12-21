@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/Market_implementation/diss.iml" filepath="$PROJECT_DIR$/Market_implementation/diss.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/simulated-financial-market.iml" filepath="$PROJECT_DIR$/.idea/simulated-financial-market.iml" />
+    </modules>
+  </component>
+</project>

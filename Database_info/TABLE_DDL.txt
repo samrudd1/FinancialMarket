@@ -1,0 +1,33 @@
+CREATE TABLE `agent` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(50) NOT NULL,
+  `funds` float NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1
+
+CREATE TABLE `good` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(50) NOT NULL,
+  `price` float NOT NULL DEFAULT '0',
+  `prevPrice` float NOT NULL DEFAULT '0',
+  `amountAvailable` int(10) unsigned NOT NULL DEFAULT '0',
+  `amountUnsold` int(10) unsigned NOT NULL DEFAULT '0',
+  `supply` int(10) unsigned NOT NULL DEFAULT '0',
+  `demand` int(10) unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1
+
+CREATE TABLE `ownership` (
+  `agent_id` int(11) unsigned NOT NULL,
+  `good_id` int(11) unsigned NOT NULL,
+  `noOwned` int(11) DEFAULT NULL,
+  `boughtAt` float unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`agent_id`,`good_id`,`boughtAt`),
+  KEY `goodId` (`good_id`),
+  CONSTRAINT `agentId` FOREIGN KEY (`agent_id`) REFERENCES `agent` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `goodId` FOREIGN KEY (`good_id`) REFERENCES `good` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=latin1
+
+CREATE TABLE `test` (
+  `testCol` bit(1) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=latin1
