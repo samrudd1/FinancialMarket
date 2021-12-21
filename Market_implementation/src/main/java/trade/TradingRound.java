@@ -60,8 +60,10 @@ public class TradingRound {
 //        Try to create a trade for each agent
         for (Agent agent : Session.getAgents().values()) {
 //            First look at direct goods
+            // add element of agent being happy with price
+            //direct goods add funds to market or good itself, like raising capital for company
             Trade trade = bindAgentAndGood(directGoodsForSale,agent);
-            if (trade == null) trade = bindAgentAndGood(ownedGoodsForSale,agent);
+            if (trade == null) trade = bindAgentAndGood(ownedGoodsForSale,agent); //direct good and owned goods for sale should be together
             if (trade != null) tradesToExecute.add(trade);
         }
         return tradesToExecute;

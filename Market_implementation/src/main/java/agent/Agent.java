@@ -99,7 +99,7 @@ public class Agent {
                 Session.getOwnerships().values().remove(ownedGood);
                 Session.getOwnershipsToDelete().add(ownedGood);
             }
-            goodsOwned.clear();
+            goodsOwned.clear(); //could add back to direct for sale, or sell all for under market price
             saveUser(false);
         }
     }

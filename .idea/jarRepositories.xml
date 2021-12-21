@@ -9,6 +9,11 @@
     <remote-repository>
       <option name="id" value="projectlombok.org" />
       <option name="name" value="projectlombok.org" />
+      <option name="url" value="https://projectlombok.org/mavenrepo" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="projectlombok.org" />
+      <option name="name" value="projectlombok.org" />
       <option name="url" value="http://projectlombok.org/mavenrepo" />
     </remote-repository>
     <remote-repository>
