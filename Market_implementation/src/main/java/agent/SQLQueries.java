@@ -1,5 +1,7 @@
 package agent;
 
+import good.Good;
+
 /**
  * This class purely contains all of the queries used in the agent package.
  * This is to make the other classes more readable
@@ -40,7 +42,7 @@ class SQLQueries {
      * @return the query needing to be used to perform insertion.
      */
     static String createInsertQuery(OwnedGood ownedGood){
-        String data = ownedGood.getOwner().getId() + "," + ownedGood.getGood().getId() + "," + ownedGood.getNumOwned() + "," + ownedGood.getBoughtAt();
+        String data = ownedGood.getOwner().getId() + "," + ownedGood.getGood().getId() + "," + ownedGood.getNumOwned() + "," + (((float)Math.round(Good.getPrice() * 100)) / 100);
         return OWNERSHIP_INSERT.replace("@data",data);
     }
 

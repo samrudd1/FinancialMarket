@@ -20,8 +20,8 @@ public class TradingCycle {
         ArrayList<OwnedGood> ownedGoodsForSale = getAgentOwnedGoods();
         initialOffering();
         try {
-            Thread.sleep(100);
-            Good.setPrice((float)(Good.getPrice() * 0.95));
+            Thread.sleep(10);
+            Good.setPrice((float)(Good.getPrice() * 0.99));
         } catch (InterruptedException e) {
             log.info("failed sleep");
         }
@@ -29,8 +29,9 @@ public class TradingCycle {
             initialOffering();
             mutate();
             try {
-                Thread.sleep(100);
+                Thread.sleep(10);
                 Good.runUpdate(false);
+                Good.setPrice((float)(Good.getPrice() * 0.99));
             } catch (InterruptedException e) {
                 log.info("failed sleep");
             }
@@ -65,10 +66,11 @@ public class TradingCycle {
             Thread t1 = new Thread(it1);
             t1.start();
             try {
-                Thread.sleep(100);
+                Thread.sleep(1);
             } catch (InterruptedException e) {
                 log.info("failed sleep");
             }
+            agent.saveUser(false);
         }
     }
 

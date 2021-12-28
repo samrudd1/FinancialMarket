@@ -28,7 +28,7 @@ public class Agent {
     @Getter private ArrayList<String> namesOwned = new ArrayList<>();
     @Getter @Setter private int id;
     @Getter @Setter private String name;
-    @Getter private float funds;
+    private float funds;
     @Getter private float targetPrice;
     @Getter private ArrayList<OwnedGood> goodsOwned = new ArrayList<>();
     @Getter private Map<Integer,Float> fundData = new HashMap<Integer,Float>();
@@ -78,7 +78,7 @@ public class Agent {
     }
 
     private void createTargetPrice() {
-        targetPrice = (float) (((Math.random() * 0.1) + 0.95) * Good.getStartingPrice());
+        targetPrice = (float) ((float)Math.round((Math.random() * 10) + 95) * (Good.getStartingPrice() * 0.01));
         LOGGER.info(name + " target price: " + targetPrice);
     }
 
@@ -195,5 +195,9 @@ public class Agent {
     public void setFunds(float newFunds){
         this.funds = newFunds;
         fundData.put(Session.getNumOfRounds(),funds);
+    }
+
+    public float getFunds() {
+        return (((float)Math.round(this.funds * 100)) / 100);
     }
 }

@@ -32,20 +32,18 @@ public class InitialTrade implements Runnable {
 
     public void run() {
         if ((buyer.getGoodsOwned().isEmpty())) {
-            buyer.getGoodsOwned().add(0, new OwnedGood(buyer, good, amountBought, Good.getPrice(), true));
+            buyer.getGoodsOwned().add(0, new OwnedGood(buyer, good, amountBought, (((float)Math.round(Good.getPrice() * 100)) / 100), true));
             buyer.setFunds(buyer.getFunds() - (Good.getPrice() * amountBought));
             Session.setMarketFunds(Session.getMarketFunds() + (Good.getPrice() * amountBought));
-            buyer.saveUser(false);
         } else {
             OwnedGood tempOwned = buyer.getGoodsOwned().get(0);
-            float newBoughtAt = (((tempOwned.getBoughtAt() * tempOwned.getNumOwned()) + (amountBought * Good.getPrice())) / (tempOwned.getNumOwned() + amountBought));
+            float newBoughtAt = (float)(Math.round(((tempOwned.getBoughtAt() * tempOwned.getNumOwned()) + (amountBought * Good.getPrice())) * 100) / ((tempOwned.getNumOwned() + amountBought) * 100));
             int newNumOwned = (tempOwned.getNumOwned() + amountBought);
             buyer.setFunds((buyer.getFunds() - (Good.getPrice() * amountBought)));
             Session.setMarketFunds(Session.getMarketFunds() + (Good.getPrice() * amountBought));
             LOGGER.info("new bought out price for " + buyer.getName() + " is " + newBoughtAt + " and total owned is " + newNumOwned + " shares.");
             OwnedGood newOne = new OwnedGood(buyer, good, newNumOwned, newBoughtAt, false);
             buyer.getGoodsOwned().set(0, newOne);
-            buyer.saveUser(false);
         }
         Good.setDirectlyAvailable(Good.getDirectlyAvailable() - amountBought);
         LOGGER.info("executing trade with " + buyer.getName() + " directly for " + amountBought + " share/s at a price of " + Good.getPrice() + " each.");

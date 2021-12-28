@@ -192,7 +192,7 @@ public class Good implements Comparable{
 
     public static void setPrice(float newPrice){
         prevPrice = price;
-        price = newPrice;
+        price = (((float)Math.round(newPrice*100))/100);
         priceData.put(Session.getNumOfRounds(),price);
         Good.runUpdate(false);
     }
