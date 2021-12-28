@@ -5,8 +5,9 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import session.Session;
+import trade.InitialTrade;
 import trade.Trade;
-import trade.TradingRound;
+import trade.TradingCycle;
 
 
 public class OwnedGoodTest {
@@ -19,14 +20,14 @@ public class OwnedGoodTest {
     @Test
     void newOwnedGoodtest(){
         Agent agent1 = new Agent();
-        Good good1 = new Good();
+        Good good1 = new Good(true);
         Session.getAgentsToDelete().add(agent1);
         Session.getGoodsToDelete().add(good1);
-        new TradingRound().startTrading();
-        Trade trade = new Trade(agent1,good1,1);
-        trade.execute();
+        new TradingCycle().startTrading(1);
+        InitialTrade trade = new InitialTrade(agent1,good1,1, 1);
+        Thread t1 = new Thread(trade);
+        t1.start();
         System.out.println("Trade executed.");
-        new TradingRound().startTrading();
     }
 
     @AfterAll

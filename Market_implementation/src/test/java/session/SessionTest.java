@@ -5,14 +5,11 @@ import static org.junit.jupiter.api.Assertions.*;
 import agent.Agent;
 import agent.OwnedGood;
 import org.junit.jupiter.api.Test;
-import utils.AppProperties;
 import utils.PropertiesLabels;
 import utils.SQLConnector;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Map;
 
 class SessionTest {
@@ -26,7 +23,7 @@ class SessionTest {
         //first run a query to get the number of agents
         int agentNo = 0;
         try(SQLConnector connector = new SQLConnector()){
-            ResultSet resultSet = connector.runQuery("SELECT COUNT(id) AS count FROM agent WHERE id != 0 ", AppProperties.getProperty(PropertiesLabels.getMarketDatabase()));
+            ResultSet resultSet = connector.runQuery("SELECT COUNT(id) AS count FROM agent WHERE id != 0 ", PropertiesLabels.getMarketDatabase());
             while(resultSet.next()){
                 agentNo = resultSet.getInt("count");
             }

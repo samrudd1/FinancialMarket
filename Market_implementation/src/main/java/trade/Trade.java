@@ -11,43 +11,28 @@ import java.util.ArrayList;
 import java.util.logging.Logger;
 
 @ToString
-public class Trade {
+public class Trade implements Runnable {
     private static final Logger LOGGER = Logger.getLogger(Trade.class.getName());
     @Getter private Agent buyer;
     private Agent seller;
     @Getter private Good good;
     @Getter private int amountBought;
+    @Getter private float price;
 
-    /**
-     * This constructor is used for executing trades between two agents
-     * @param buyer the Agent buying the ownedGood
-     * @param seller the Agent selling the ownedGood
-     * @param good the Good being sold
-     * @param amountBought the amount of that ownedGood being sold
-     */
-    public Trade(Agent buyer, Agent seller, Good good, int amountBought){
+    public Trade(Agent buyer, Agent seller, Good good, int amountBought, float price){
         this.buyer = buyer;
         this.seller = seller;
         this.good = good;
         this.amountBought = amountBought;
+        this.price = price;
     }
 
-    /**
-     * This constructor will be used when a ownedGood is being initially sold into the market, the ownedGood will be sold by the Good object itself
-     * @param buyer the Agent buying the ownedGood
-     * @param good The Good being offered
-     * @param amountBought The number of the ownedGood being sold
-     */
-    public Trade(Agent buyer, Good good, int amountBought){
-        this.buyer = buyer;
-        this.good = good;
-        this.amountBought = amountBought;
+    public void run() {
+
     }
 
-    /**
-     * This takes the trade object and creates an OwnedGood.
-     * @return an indicator as to whether the execution was a success.
-     */
+
+    /*
     public boolean execute(){
         boolean didExecute = true;
         try{
@@ -95,6 +80,7 @@ public class Trade {
             didExecute = false;
         }
         return didExecute;
+        return false;
     }
 
     private OwnedGood getCheapestOwnedGood(Agent agent, Good good){
@@ -115,5 +101,6 @@ public class Trade {
         String finalKey = agent.getId() + "-" + good.getId() + "-" + lowestBoughtAt;
         return Session.getOwnerships().get(finalKey);
     }
+    */
 
 }

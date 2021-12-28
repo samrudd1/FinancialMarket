@@ -10,7 +10,7 @@ import session.Session;
 
 import java.util.ArrayList;
 
-public class TradingRoundTest {
+public class TradingCycleTest {
 
     @BeforeAll
     static void setup(){
@@ -20,14 +20,12 @@ public class TradingRoundTest {
     @Test
     void tradingRoundTest(){
         for(int i = 0; i<1; i++){
-            Session.getGoodsToDelete().add(new Good());
+            Session.getGoodsToDelete().add(new Good(true));
         }
         for(int i = 0; i<2; i++){
             Session.getAgentsToDelete().add(new Agent());
         }
-        for(int i = 0; i<500; i++){
-            new TradingRound().startTrading();
-        }
+            new TradingCycle().startTrading(500);
         for(Agent agent : Session.getAgents().values()){
             agent.closeAccount();
         }

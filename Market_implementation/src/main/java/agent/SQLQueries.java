@@ -40,7 +40,7 @@ class SQLQueries {
      * @return the query needing to be used to perform insertion.
      */
     static String createInsertQuery(OwnedGood ownedGood){
-        String data = ownedGood.getOwner().getId() + "," + ownedGood.getGood().getId() + "," + ownedGood.getNumberOwned() + "," + ownedGood.getBoughtAt();
+        String data = ownedGood.getOwner().getId() + "," + ownedGood.getGood().getId() + "," + ownedGood.getNumOwned() + "," + ownedGood.getBoughtAt();
         return OWNERSHIP_INSERT.replace("@data",data);
     }
 
@@ -63,7 +63,7 @@ class SQLQueries {
      * @return the query needed
      */
     static String createUpdateQuery(OwnedGood ownedGood){
-        String noOwned = String.valueOf(ownedGood.getNumberOwned());
+        String noOwned = String.valueOf(ownedGood.getNumOwned());
         String boughtAt = String.valueOf(ownedGood.getBoughtAt());
         String agentId = String.valueOf(ownedGood.getOwner().getId());
         String goodId = String.valueOf(ownedGood.getGood().getId());

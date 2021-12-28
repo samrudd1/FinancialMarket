@@ -7,7 +7,6 @@ import altair.PythonCallGood;
 import lombok.Getter;
 import good.Good;
 import lombok.Setter;
-import utils.AppProperties;
 import utils.PropertiesLabels;
 import utils.SQLConnector;
 
@@ -25,10 +24,13 @@ public class Session {
     private static final Logger LOGGER = Logger.getLogger(Session.class.getName());
     private static final String SESSION_DATABASE = PropertiesLabels.getMarketDatabase();
     private static boolean isOpen = false;
-    @Getter private static Map<Integer,Agent> agents = new HashMap<>();
+    @Getter @Setter private static float marketFunds = 0; //acts as funds raised for issuing company
+    @Getter @Setter private static int numAgents;
+    @Getter private static Map<Integer, Agent> agents = new HashMap<>();
     @Getter private static ArrayList<Agent> agentsToDelete = new ArrayList<>();
     @Getter private static ArrayList<Agent> agentsToUpdate = new ArrayList<>();
-    @Getter private static Map<Integer,Good> goods = new HashMap<>();
+    @Getter private static ArrayList<Good> goods = new ArrayList<>();
+    @Getter private static ArrayList<Good> directGoods = new ArrayList<>();
     @Getter private static ArrayList<Good> goodsToDelete = new ArrayList<>();
     @Getter private static ArrayList<Good> goodsToUpdate = new ArrayList<>();
     @Getter private static Map<String,OwnedGood> ownerships = new HashMap<>();
@@ -74,7 +76,14 @@ public class Session {
                 float boughtAt = resultSet.getFloat("boughtAt");
                 Agent agent = agents.get(agentId);
                 Good good = goods.get(goodId);
-                agent.getGoodsOwned().add(new OwnedGood(agent,good,noOwned,boughtAt,true));
+                if (noOwned > 0) {
+                    if (noOwned <= Good.getOutstandingShares()) {
+                        Good.setDirectlyAvailable(Good.getOutstandingShares() - noOwned);
+                    } else {
+                        LOGGER.info("too many goods owned in database for " + good.getId());
+                    }
+                }
+                agent.getGoodsOwned().add(0, new OwnedGood(agent, good, noOwned, boughtAt, true));
             }
             resultSet.close();
             isOpen = true;
@@ -143,12 +152,12 @@ public class Session {
             boolean didClose = false;
             try{
                 makeCharts();
-                deleteOwnership();
-                deleteAgents();
-                deleteGoods();
-                Agent.resetAgentIncrement();
-                Good.resetGoodIncrement();
-                clearLists();
+                //deleteOwnership();
+                //deleteAgents();
+                //deleteGoods();
+                //Agent.resetAgentIncrement();
+                //Good.resetGoodIncrement();
+                //clearLists();
                 didClose = true;
                 isOpen = false;
             } catch (Exception e){
@@ -162,7 +171,7 @@ public class Session {
         for(Agent agent : agents.values()){
             new PythonCallAgent(agent).execute();
         }
-        for(Good good : goods.values()){
+        for(Good good : goods){
             new PythonCallGood(good).execute();
         }
     }
@@ -171,6 +180,9 @@ public class Session {
      * When closing a session all lists are cleared.
      */
     private static void clearLists(){
+        /*
+        Agent.resetAgentIncrement();
+        Good.resetGoodIncrement();
         agents.clear();
         agentsToDelete.clear();
         agentsToUpdate.clear();
@@ -180,6 +192,7 @@ public class Session {
         ownerships.clear();
         ownershipsToDelete.clear();
         ownershipsToUpdate.clear();
+         */
     }
 
 

@@ -6,36 +6,65 @@ import good.Good;
 import lombok.extern.java.Log;
 import session.Session;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Random;
 
 
 @Log
-public class TradingRound {
+public class TradingCycle {
     private static final double SELLING_THRESHOLD = 0.9;
     private static final float INCREASE_MULTIPLIER = 1.01f;
     private static final float DECREASE_MULTIPLIER = 0.99f;
 
-    /**
-     * This method looks at the goods in the session manager and returns the goods that have directly available units
-     * @return a list of goods that can be bought directly
-     */
-    private ArrayList<Good> getDirectGoodsToSell(){
-        ArrayList<Good> directGoodsToReturn = new ArrayList<>();
-        for(Good directGood : Session.getGoods().values()){
-            if(directGood.getAmountUnsold() > 0){
-                directGoodsToReturn.add(directGood);
-            }
+    public void startTrading(int numOfRounds){
+        Session.setNumOfRounds(Session.getNumOfRounds()+1);
+        ArrayList<OwnedGood> ownedGoodsForSale = getAgentOwnedGoods();
+        initialOffering();
+        for (int i = 0; i < (numOfRounds - 1); i++) {
+            initialOffering();
+            mutate();
         }
-        return directGoodsToReturn;
     }
 
-    /**
-     * Here we look at the owned goods in the session manager,
-     * if there are any owned goods here that have a price above the bought at price (
-     * or if the price has dropped significantly), they should be put up for sale.
-     * @return a list of the agent owned goods that would be advisable to sell
-     */
+    private void initialOffering() {
+        //This could be used as opening bell type auction, or IPO
+        log.info("There are " + Good.getDirectlyAvailable() + " direct goods for sale at " + Good.getPrice());
+        int startingOffer = Good.getDirectlyAvailable();
+        for (Agent agent : Session.getAgents().values()) {
+            if ((Good.getPrice() < agent.getTargetPrice()) && (Good.getDirectlyAvailable() > 0)) {
+                int wantToBuy = (startingOffer / Session.getNumAgents());
+
+                if(Good.getDirectlyAvailable() >= wantToBuy) {
+                    if (agent.getFunds() < (wantToBuy * Good.getPrice())) {
+                        wantToBuy = (int) Math.floor(agent.getFunds() / Good.getPrice());
+                    }
+                    InitialTrade it1 = new InitialTrade(agent, Session.getGoods().get(0), wantToBuy, Good.getPrice());
+                    Thread t1 = new Thread(it1);
+                    t1.start();
+                    //if (trade == null) trade = bindAgentAndGood(ownedGoodsForSale, agent); //direct good and owned goods for sale should be together
+                }
+            }
+        }
+    }
+
+    private void createTrades() {
+        //This could be used as opening bell type auction, or IPO
+        for (Agent agent : Session.getAgents().values()) {
+            if ((Good.getPrice() < agent.getTargetPrice()) && (Good.getDirectlyAvailable() > 0)) {
+                int wantToBuy = (Good.getOutstandingShares() / Session.getNumAgents());
+                log.info(agent.getName() + " wants " + wantToBuy + " stocks, there are " + Good.getDirectlyAvailable() + " available directly");
+                log.info("there are " + Session.getNumAgents() + " agents");
+
+                if(Good.getDirectlyAvailable() >= wantToBuy) {
+                    if (agent.getFunds() < (wantToBuy * Good.getPrice())) {
+                        wantToBuy = (int) Math.floor(agent.getFunds() / Good.getPrice());
+                    }
+                    //purchaseDirect(agent, wantToBuy);
+                        //if (trade == null) trade = bindAgentAndGood(ownedGoodsForSale, agent); //direct good and owned goods for sale should be together
+                }
+            }
+        }
+    }
+
     private ArrayList<OwnedGood> getAgentOwnedGoods(){
         ArrayList<OwnedGood> agentOwnedGoods = new ArrayList<>();
         for(OwnedGood ownedGood : Session.getOwnerships().values()){
@@ -48,28 +77,38 @@ public class TradingRound {
         return agentOwnedGoods;
     }
 
-    /**
-     * Here we take in two lists, one containing direct goods to be sold and one taking owned goods to be sold.
-     * Prioritising directly sold goods, we try to bind goods to agents and set up trades
-     * @param directGoodsForSale the list of direct goods that are to be sold.
-     * @param ownedGoodsForSale the list of owned goods that are to be sold.
-     * @return a list of the trades to be executed.
-     */
-    private ArrayList<Trade> createTrades(ArrayList<Good> directGoodsForSale, ArrayList<OwnedGood> ownedGoodsForSale) {
-        ArrayList<Trade> tradesToExecute = new ArrayList<>();
-//        Try to create a trade for each agent
-        for (Agent agent : Session.getAgents().values()) {
-//            First look at direct goods
-            // add element of agent being happy with price
-            //direct goods add funds to market or good itself, like raising capital for company
-            Trade trade = bindAgentAndGood(directGoodsForSale,agent);
-            if (trade == null) trade = bindAgentAndGood(ownedGoodsForSale,agent); //direct good and owned goods for sale should be together
-            if (trade != null) tradesToExecute.add(trade);
+    //adds randomness to market, from original version
+    private void mutate(){
+        Random rand = new Random();
+        int chance = rand.nextInt(100);
+        if(chance > 75){
+            Session.getAgentsToDelete().add(new Agent());
+            log.info("Adding new Agent to market.");
+            Session.setNumAgents(Session.getNumAgents() + 1);
         }
-        return tradesToExecute;
+        if (chance > 95){
+            Session.getGoodsToDelete().add(new Good(true));
+            log.info("Adding new Good to market.");
+            Good.setOutstandingShares(Good.getOutstandingShares() + 1);
+            //sell for under market price
+        }
     }
 
-    private Trade bindAgentAndGood(ArrayList<?> goodsForSale, Agent buyer){
+
+    /*
+    //could move to trade class, use on separate thread
+    private void purchaseDirect(Agent buyer, int amount){
+        for (int i = 0; i < amount; i++) {
+            Good good = Session.getDirectGoods().get(0);
+            buyer.getGoodsOwned().add(new OwnedGood(buyer, good, Good.getPrice())); //getPrice will change for auction in future
+            Session.getDirectGoods().remove(0);
+            Session.getDirectGoods().trimToSize();
+            buyer.setFunds(buyer.getFunds() - Good.getPrice());
+            Session.setMarketFunds(Session.getMarketFunds() + Good.getPrice());
+            log.info("executing trade with " + buyer.getName() + " directly for " + amount + " share/s at a price of " + Good.getPrice());
+        }
+
+
         Object goodToBuy = null;
         boolean foundTrade = false;
         int counter = 0;
@@ -121,7 +160,7 @@ public class TradingRound {
                 int buyerFunds = (int)Math.floor(buyer.getFunds());
                 int goodPrice = (int)Math.floor(good.getPrice());
                 int numberCanAfford = (int)Math.floor(buyerFunds/goodPrice);
-                int numberAvailable = ownedGood == null ? good.getAmountUnsold() : ownedGood.getNumberOwned();
+                int numberAvailable = ownedGood == null ? Good.getDirectlyAvailable() : ownedGood.getNumberOwned();
                 int numberToBuy = Math.min(numberAvailable,numberCanAfford);
                 goodsForSale.remove(goodToBuy); //TODO This should really lower the amount of the good, not remove it.
                 return new Trade(buyer,seller,good,numberToBuy);
@@ -129,13 +168,8 @@ public class TradingRound {
         } catch (Exception e){
             log.severe("Casting error when converting good type during trade binding.");
         }
-
-        return null;
     }
 
-    /**
-     * Here we take a look at every good in the market and calculate the supply and demand for them.
-     */
     private void adjustMarketPrices(){
         for(Good good : Session.getGoods().values()){
             good.setSupply(0);
@@ -160,43 +194,5 @@ public class TradingRound {
             }
         }
     }
-
-    private void mutate(){
-        Random rand = new Random();
-        int chance = rand.nextInt(100);
-        if(chance > 75){
-            Session.getAgentsToDelete().add(new Agent());
-            log.info("Adding new Agent to market.");
-        }
-        if (chance > 95){
-            Session.getGoodsToDelete().add(new Good());
-            log.info("Adding new Good to market.");
-        }
-    }
-
-        public void startTrading(){
-        Session.setNumOfRounds(Session.getNumOfRounds()+1);
-//        Get all the direct goods that can be sold
-//        Get all the agent owned goods
-//        For the agent owned goods check the bought at price vs current price
-//        If a profit can be made (or the price has significantly dropped), add it to the list to sell
-//        Look at all agents, choose the most expensive good that the agent can afford and buy as many as possible
-//        Now adjust the market prices and supply/demand
-//        Mutate market
-
-        ArrayList<Good> directGoodsForSale = getDirectGoodsToSell();
-        log.info("There are " + directGoodsForSale.size() + " direct goods for sale.");
-        ArrayList<OwnedGood> ownedGoodsForSale = getAgentOwnedGoods();
-        log.info("There are " + ownedGoodsForSale.size() + " owned goods for sale.");
-        ArrayList<Trade> trades = createTrades(directGoodsForSale,ownedGoodsForSale);
-        for(Trade trade : trades){
-            log.info("Executing Trade: " + trade.toString());
-            trade.execute();
-        }
-        adjustMarketPrices();
-        mutate();
-
-    }
-
-
+    */
 }

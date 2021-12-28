@@ -2,7 +2,6 @@ package agent;
 
 import good.Good;
 import session.Session;
-import utils.AppProperties;
 import utils.PropertiesLabels;
 import utils.SQLConnector;
 import lombok.*;
@@ -26,10 +25,12 @@ public class Agent {
     private static final String AGENT_DATABASE = PropertiesLabels.getMarketDatabase();
 
     private static Random rand = new Random();
+    @Getter private ArrayList<String> namesOwned = new ArrayList<>();
     @Getter @Setter private int id;
     @Getter @Setter private String name;
     @Getter private float funds;
-    @Getter @Setter private ArrayList<OwnedGood> goodsOwned = new ArrayList<OwnedGood>();
+    @Getter private float targetPrice;
+    @Getter private ArrayList<OwnedGood> goodsOwned = new ArrayList<>();
     @Getter private Map<Integer,Float> fundData = new HashMap<Integer,Float>();
     @Getter private int startingRound;
 
@@ -40,8 +41,8 @@ public class Agent {
         id = findId(); //Make sure nextId is handled okay with concurrency
         name = "Agent" + id;
         funds = assignFunds();
+        createTargetPrice();
         fundData.put(Session.getNumOfRounds(),funds);
-        goodsOwned = new ArrayList<>();
         this.startingRound = Session.getNumOfRounds();
         Session.getAgents().put(id,this);
         saveUser(true);
@@ -56,7 +57,6 @@ public class Agent {
         this.name = name.substring(0, 1).toUpperCase() + name.substring(1); //capitalizing
         funds = assignFunds();
         fundData.put(Session.getNumOfRounds(),funds);
-        goodsOwned = new ArrayList<>();
         this.startingRound = Session.getNumOfRounds();
         Session.getAgents().put(id,this);
         saveUser(true);
@@ -77,6 +77,11 @@ public class Agent {
         Session.getAgents().put(id,this);
     }
 
+    private void createTargetPrice() {
+        targetPrice = (float) (((Math.random() * 0.1) + 0.95) * Good.getStartingPrice());
+        LOGGER.info(name + " target price: " + targetPrice);
+    }
+
     /**
      * This takes the max and min funds values and returns a float between those two numbers
      * @return a float between the minimum and maximum starting funds number
@@ -90,16 +95,18 @@ public class Agent {
      * This sells the owned goods back to the direct good and gives the user funds. Currently only a debug tool.
      */
     public void closeAccount(){
-        if(!goodsOwned.isEmpty()){
+        if(!(goodsOwned.isEmpty())){
             for(OwnedGood ownedGood : goodsOwned){
                 Good good = ownedGood.getGood();
-                good.setAmountUnsold(good.getAmountUnsold() + ownedGood.getNumberOwned());
+                /*
+                Good.setDirectlyAvailable(Good.getDirectlyAvailable() + ownedGood.getNumberOwned());
                 float fundsIncrease = ownedGood.getNumberOwned() * good.getPrice();
                 setFunds(fundsIncrease + funds);
                 Session.getOwnerships().values().remove(ownedGood);
                 Session.getOwnershipsToDelete().add(ownedGood);
+                 */
             }
-            goodsOwned.clear(); //could add back to direct for sale, or sell all for under market price
+            //goodsOwned.clear(); //could add back to direct for sale, or sell all for under market price
             saveUser(false);
         }
     }
@@ -157,6 +164,7 @@ public class Agent {
         } catch (SQLException e) {
             LOGGER.info("Error retrieving latest agent id: " + e.getMessage());
         }
+        LOGGER.info("highest id is " + latestId);
         return latestId;
     }
 
