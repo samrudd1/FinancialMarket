@@ -19,29 +19,55 @@ public class TradingCycle {
         Session.setNumOfRounds(Session.getNumOfRounds()+1);
         ArrayList<OwnedGood> ownedGoodsForSale = getAgentOwnedGoods();
         initialOffering();
+        try {
+            Thread.sleep(100);
+            Good.setPrice((float)(Good.getPrice() * 0.95));
+        } catch (InterruptedException e) {
+            log.info("failed sleep");
+        }
         for (int i = 0; i < (numOfRounds - 1); i++) {
             initialOffering();
             mutate();
+            try {
+                Thread.sleep(100);
+                Good.runUpdate(false);
+            } catch (InterruptedException e) {
+                log.info("failed sleep");
+            }
         }
     }
 
     private void initialOffering() {
         //This could be used as opening bell type auction, or IPO
         log.info("There are " + Good.getDirectlyAvailable() + " direct goods for sale at " + Good.getPrice());
-        int startingOffer = Good.getDirectlyAvailable();
+        int startingOffer = Good.getOutstandingShares();
         for (Agent agent : Session.getAgents().values()) {
             if ((Good.getPrice() < agent.getTargetPrice()) && (Good.getDirectlyAvailable() > 0)) {
                 int wantToBuy = (startingOffer / Session.getNumAgents());
 
                 if(Good.getDirectlyAvailable() >= wantToBuy) {
-                    if (agent.getFunds() < (wantToBuy * Good.getPrice())) {
-                        wantToBuy = (int) Math.floor(agent.getFunds() / Good.getPrice());
-                    }
-                    InitialTrade it1 = new InitialTrade(agent, Session.getGoods().get(0), wantToBuy, Good.getPrice());
-                    Thread t1 = new Thread(it1);
-                    t1.start();
+                    checkTrade(agent, wantToBuy);
                     //if (trade == null) trade = bindAgentAndGood(ownedGoodsForSale, agent); //direct good and owned goods for sale should be together
+                } else if (Good.getDirectlyAvailable() < wantToBuy) {
+                    wantToBuy = Good.getDirectlyAvailable();
+                    checkTrade(agent, wantToBuy);
                 }
+            }
+        }
+    }
+
+    private void checkTrade(Agent agent, int wantToBuy) {
+        if (agent.getFunds() < (wantToBuy * Good.getPrice())) {
+            wantToBuy = (int) Math.floor(agent.getFunds() / Good.getPrice());
+        }
+        if (!(wantToBuy == 0)){
+            InitialTrade it1 = new InitialTrade(agent, Session.getGoods().get(0), wantToBuy, Good.getPrice());
+            Thread t1 = new Thread(it1);
+            t1.start();
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                log.info("failed sleep");
             }
         }
     }
@@ -82,14 +108,14 @@ public class TradingCycle {
         Random rand = new Random();
         int chance = rand.nextInt(100);
         if(chance > 75){
-            Session.getAgentsToDelete().add(new Agent());
             log.info("Adding new Agent to market.");
+            new Agent();
             Session.setNumAgents(Session.getNumAgents() + 1);
         }
         if (chance > 95){
-            Session.getGoodsToDelete().add(new Good(true));
             log.info("Adding new Good to market.");
             Good.setOutstandingShares(Good.getOutstandingShares() + 1);
+            Good.setDirectlyAvailable(Good.getDirectlyAvailable() + 1);
             //sell for under market price
         }
     }

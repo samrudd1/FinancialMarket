@@ -26,12 +26,13 @@ public class Good implements Comparable{
     private static final Random rand = new Random();
     @Getter private final int id;
     @Getter static private String name = "Stock";
+    @Getter static private float prevPrice;
     @Getter static private float price;
     @Getter static  private float startingPrice;
     //@Getter @Setter private float boughtPrice;
     @Getter @Setter static private int outstandingShares;
     @Getter @Setter static private int directlyAvailable;
-    @Getter private Map<Integer,Float> priceData = new HashMap<>();
+    @Getter private static Map<Integer,Float> priceData = new HashMap<>();
 
     /*
     public Good(){
@@ -117,7 +118,27 @@ public class Good implements Comparable{
         try(SQLConnector connector = new SQLConnector()){
             connector.runUpdate(query,PropertiesLabels.getMarketDatabase());
         } catch (Exception e){
-            LOGGER.info("Error saving ownedGood with id " + this.getId() + " : " + e.getMessage());
+            LOGGER.info("Error saving Good with id " + this.getId() + " : " + e.getMessage());
+        }
+    }
+
+    public static void runUpdate(boolean isNew) {
+        String query = null;
+        Good good = null;
+        if (!(Session.getGoods().isEmpty())) {
+            good = Session.getGoods().get(0);
+        }
+        if (!(good == null)) {
+            if (isNew) {
+                query = SQLQueries.createInsertQuery(good);
+            } else {
+                query = SQLQueries.createUpdateQuery(good);
+            }
+            try (SQLConnector connector = new SQLConnector()) {
+                connector.runUpdate(query, PropertiesLabels.getMarketDatabase());
+            } catch (Exception e) {
+                LOGGER.info("Error updated shares db: " + e.getMessage());
+            }
         }
     }
 
@@ -169,9 +190,11 @@ public class Good implements Comparable{
         }
     }
 
-    public void setPrice(float newPrice){
+    public static void setPrice(float newPrice){
+        prevPrice = price;
         price = newPrice;
         priceData.put(Session.getNumOfRounds(),price);
+        Good.runUpdate(false);
     }
 
     @Override

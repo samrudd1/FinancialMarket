@@ -20,7 +20,7 @@ class SQLQueries {
 
     private static final String OWNERSHIP_DELETE = "DELETE FROM ownership WHERE agent_id = @agent_id AND good_id = @good_id ";
 
-    private static final String OWNERSHIP_UPDATE = "UPDATE ownership SET noOwned = @noOwned WHERE agent_id = @agent_id AND good_id = @good_id AND boughtAt = @boughtAt ";
+    private static final String OWNERSHIP_UPDATE = "UPDATE ownership SET noOwned = @noOwned, boughtAt = @boughtAt WHERE agent_id = @agent_id AND good_id = @good_id";
 
     private static final String OWNERSHIP_INSERT  = "INSERT into ownership (agent_id,good_id,noOwned,boughtAt) VALUES ( @data )";
 

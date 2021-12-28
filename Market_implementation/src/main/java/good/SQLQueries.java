@@ -36,7 +36,7 @@ public class SQLQueries {
      */
     static String createUpdateQuery(Good good){
         String price = String.valueOf(Good.getPrice());
-        String prevPrice = "0";
+        String prevPrice = String.valueOf(Good.getPrevPrice());
         String available = String.valueOf(Good.getOutstandingShares());
         String unsold = String.valueOf(Good.getDirectlyAvailable());
         String id = String.valueOf(good.getId());
