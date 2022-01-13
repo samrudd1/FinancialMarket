@@ -15,7 +15,7 @@ class SQLConnectorTest {
     void makeConnectionTest(){
         boolean complete = false;
         try{
-            SQLConnector.makeConnection(AppProperties.getProperty("marketDatabase"));
+            SQLConnector.makeConnection(PropertiesLabels.getMarketDatabase());
             complete = true;
         } catch (Exception e){
             e.printStackTrace();
@@ -27,9 +27,12 @@ class SQLConnectorTest {
     @Test
     void lookForFakeTable(){
         boolean didfail = false;
-        try(Connection conn = SQLConnector.makeConnection(AppProperties.getProperty("marketDatabase"))){
-            Statement statement = conn.createStatement();
-            ResultSet results = statement.executeQuery("SELECT * FROM fakeTable WHERE testCol = '1' ");
+        try(Connection conn = SQLConnector.makeConnection(PropertiesLabels.getMarketDatabase())){
+            Statement statement = null;
+            if (conn != null) {
+                statement = conn.createStatement();
+                ResultSet results = statement.executeQuery("SELECT * FROM fakeTable WHERE testCol = '1' ");
+            }
         } catch (Exception e){
             didfail = true;
         }

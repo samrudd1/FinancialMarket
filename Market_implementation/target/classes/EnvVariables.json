@@ -1,6 +1,6 @@
 {
   "testString" : "test",
-  "dbUrl" : "jdbc:mysql://192.168.0.27:3306/",
+  "dbUrl" : "jdbc:mysql://192.168.0.70:3306/",
   "dbUser" : "marketuser",
   "dbPassword" : "marketpass",
   "marketDatabase" : "marketdb"

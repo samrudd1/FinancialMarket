@@ -25,7 +25,7 @@ public class SQLQueries {
      * @return the query needing to be used to perform insertion.
      */
     static String createInsertQuery(Good good){
-        String data = "'" + good.getName() + "' , " + good.getPrice() + "," + good.getPrevPrice() + "," + good.getAmountAvailable() + "," + good.getAmountUnsold() + "," + good.getSupply() + "," + good.getDemand();
+        String data = "'" + Good.getName() + "' , " + Good.getPrice() + "," + 0 + "," + Good.getOutstandingShares() + "," + Good.getDirectlyAvailable() + "," + 0 + "," + 0;
         return GOOD_INSERT.replace("@data",data);
     }
 
@@ -35,13 +35,13 @@ public class SQLQueries {
      * @return the query needed
      */
     static String createUpdateQuery(Good good){
-        String price = String.valueOf(good.getPrice());
-        String prevPrice = String.valueOf(good.getPrevPrice());
-        String available = String.valueOf(good.getAmountAvailable());
-        String unsold = String.valueOf(good.getAmountUnsold());
+        String price = String.valueOf(Good.getPrice());
+        String prevPrice = String.valueOf(Good.getPrevPrice());
+        String available = String.valueOf(Good.getOutstandingShares());
+        String unsold = String.valueOf(Good.getDirectlyAvailable());
         String id = String.valueOf(good.getId());
-        String supply = String.valueOf(good.getSupply());
-        String demand = String.valueOf(good.getDemand());
+        String supply = "0";
+        String demand = "0";
         String updatedQuery = GOOD_UPDATE;
         updatedQuery = updatedQuery.replace("@price",price);
         updatedQuery = updatedQuery.replace("@prevPrice",prevPrice);

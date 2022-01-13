@@ -1,5 +1,7 @@
 package agent;
 
+import good.Good;
+
 /**
  * This class purely contains all of the queries used in the agent package.
  * This is to make the other classes more readable
@@ -20,7 +22,7 @@ class SQLQueries {
 
     private static final String OWNERSHIP_DELETE = "DELETE FROM ownership WHERE agent_id = @agent_id AND good_id = @good_id ";
 
-    private static final String OWNERSHIP_UPDATE = "UPDATE ownership SET noOwned = @noOwned WHERE agent_id = @agent_id AND good_id = @good_id AND boughtAt = @boughtAt ";
+    private static final String OWNERSHIP_UPDATE = "UPDATE ownership SET noOwned = @noOwned, boughtAt = @boughtAt WHERE agent_id = @agent_id AND good_id = @good_id";
 
     private static final String OWNERSHIP_INSERT  = "INSERT into ownership (agent_id,good_id,noOwned,boughtAt) VALUES ( @data )";
 
@@ -40,7 +42,7 @@ class SQLQueries {
      * @return the query needing to be used to perform insertion.
      */
     static String createInsertQuery(OwnedGood ownedGood){
-        String data = ownedGood.getOwner().getId() + "," + ownedGood.getGood().getId() + "," + ownedGood.getNumberOwned() + "," + ownedGood.getBoughtAt();
+        String data = ownedGood.getOwner().getId() + "," + ownedGood.getGood().getId() + "," + ownedGood.getNumOwned() + "," + (((float)Math.round(Good.getPrice() * 100)) / 100);
         return OWNERSHIP_INSERT.replace("@data",data);
     }
 
@@ -63,7 +65,7 @@ class SQLQueries {
      * @return the query needed
      */
     static String createUpdateQuery(OwnedGood ownedGood){
-        String noOwned = String.valueOf(ownedGood.getNumberOwned());
+        String noOwned = String.valueOf(ownedGood.getNumOwned());
         String boughtAt = String.valueOf(ownedGood.getBoughtAt());
         String agentId = String.valueOf(ownedGood.getOwner().getId());
         String goodId = String.valueOf(ownedGood.getGood().getId());

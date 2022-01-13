@@ -6,10 +6,10 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.java.Log;
 import session.Session;
-import utils.AppProperties;
 import utils.PropertiesLabels;
 import utils.SQLConnector;
 
+import java.util.ArrayList;
 import java.util.logging.Logger;
 
 @EqualsAndHashCode
@@ -18,18 +18,17 @@ public class OwnedGood implements Comparable{
     private static final Logger LOGGER = Logger.getLogger(OwnedGood.class.getName());
     @Getter @Setter private Agent owner;
     @Getter @Setter private Good good;
-    @Getter @Setter private int numberOwned;
+    @Getter @Setter private int numOwned;
     @Getter @Setter private float boughtAt;
 
-    public OwnedGood(Agent owner, Good good, int numberOwned, float boughtAt, boolean alreadyExists){
+    public OwnedGood(Agent owner, Good good, int numOwned, float boughtAt, boolean isNew){
         this.owner = owner;
         this.good = good;
-        this.numberOwned = numberOwned;
+        this.numOwned = numOwned;
         this.boughtAt = boughtAt;
+        owner.getNamesOwned().add(Good.getName());
         Session.getOwnerships().put(owner.getId() + "-" + good.getId() + "-" + boughtAt,this);
-        if(!alreadyExists){
-            save(true);
-        }
+            save(isNew);
     }
 
     public void save(boolean isNew){
@@ -40,7 +39,7 @@ public class OwnedGood implements Comparable{
             query = SQLQueries.createUpdateQuery(this);
         }
         try(SQLConnector connector = new SQLConnector()){
-            connector.runUpdate(query, AppProperties.getProperty(PropertiesLabels.getMarketDatabase()));
+            connector.runUpdate(query, PropertiesLabels.getMarketDatabase());
         } catch (Exception e){
             LOGGER.info("Error saving ownership with agent id " + owner.getId() + " : " + e.getMessage());
         }
@@ -51,7 +50,7 @@ public class OwnedGood implements Comparable{
      */
     public void delete(){
         try(SQLConnector connector = new SQLConnector()){
-            connector.runUpdate(SQLQueries.createDeleteQuery(this),AppProperties.getProperty(PropertiesLabels.getMarketDatabase()));
+            connector.runUpdate(SQLQueries.createDeleteQuery(this),PropertiesLabels.getMarketDatabase());
         } catch (Exception e){
             LOGGER.info("Error deleting owned ownedGood with agent id " + owner.getId() + " : " + e.getMessage());
         }

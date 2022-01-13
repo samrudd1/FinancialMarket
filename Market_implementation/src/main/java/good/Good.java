@@ -1,11 +1,11 @@
 package good;
 
+import agent.Agent;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.java.Log;
 import session.Session;
-import utils.AppProperties;
 import utils.PropertiesLabels;
 import utils.SQLConnector;
 
@@ -22,61 +22,86 @@ import java.util.logging.Logger;
 public class Good implements Comparable{
     //TODO Lombok logger is used here, remove the below logger
     private static final Logger LOGGER = Logger.getLogger(Good.class.getName());
-    private static final int PRICE_VARIANCE_PERCENT = 20;
-    private static DecimalFormat df = new DecimalFormat("0.00");
-    private static Random rand = new Random();
-    @Getter private int id;
-    @Getter private String name;
-    @Getter private float price;
-    @Getter @Setter private float prevPrice;
-    @Getter private int amountAvailable;
-    @Getter @Setter private int amountUnsold;
-    @Getter @Setter private int supply;
-    @Getter @Setter private int demand;
-    @Getter private Map<Integer,Float> priceData = new HashMap<>();
+    //private static final int PRICE_VARIANCE_PERCENT = 20;
+    //private static DecimalFormat df = new DecimalFormat("0.00");
+    private static final Random rand = new Random();
+    @Getter private final int id;
+    @Getter static private String name = "Stock";
+    @Getter static private float prevPrice;
+    @Getter static private float price;
+    @Getter static  private float startingPrice;
+    private boolean goodLock;
+    @Getter private static Agent company;
+    //@Getter @Setter private float boughtPrice;
+    @Getter @Setter static private int outstandingShares;
+    @Getter @Setter static private int directlyAvailable;
+    @Getter private static Map<Integer,Float> priceData = new HashMap<>();
 
+    /*
     public Good(){
+        id = name + findId();
+        Session.getGoods().add(this);
+        Session.getDirectGoods().add(this);
+        saveGood(true);
+    }
+    */
+
+    public Good(boolean isNew){
+        setGoodLock(false);
         id = findId();
-        name = "Good" + id;
-        price = Float.parseFloat(df.format(definePrice()));
-        prevPrice = 0;
-        amountAvailable = 5;
-        supply = 0;
-        demand = 0;
-        amountUnsold = amountAvailable;
-        Session.getGoods().put(id,this);
+        if (Session.getGoods().isEmpty()) {
+            Session.getGoods().add(0, this);
+        } else {
+            Session.getGoods().set(0, this);
+        }
+        if (isNew) Session.getDirectGoods().add(this);
+        company = new Agent(findId(), (getName() + " company"), 0);
         saveGood(true);
     }
 
-    public Good(String name){
+    public Good(int outstandingShares){
+        setGoodLock(false);
         id = findId();
-        this.name = name.substring(0, 1).toUpperCase() + name.substring(1); //capitalizing
-        price = definePrice();
-        prevPrice = 0;
-        amountAvailable = 5;
-        supply = 0;
-        demand = 0;
-        amountUnsold = amountAvailable;
-        Session.getGoods().put(id,this);
+        Good.outstandingShares = outstandingShares;
+        directlyAvailable = Good.outstandingShares;
+        if (Session.getGoods().isEmpty()) {
+            Session.getGoods().add(0, this);
+        } else {
+            Session.getGoods().set(0, this);
+        }
+        company = new Agent(findId(), (getName() + " company"), 0);
         saveGood(true);
     }
+
 
     public Good(int id, String name, float price, float prevPrice, int amountAvailable, int amountUnsold, int supply, int demand){
+        setGoodLock(false);
         this.id = id;
-        this.name = name;
-        this.price = price;
-        this.prevPrice = prevPrice;
-        this.amountAvailable = amountAvailable;
-        this.amountUnsold = amountUnsold;
-        this.supply = supply;
-        this.demand = demand;
-        Session.getGoods().put(id,this);
+        Good.name = name;
+        //Good.price = price;
+        //Good.outstandingShares = amountAvailable;
+        //Good.directlyAvailable = amountUnsold;
+        if (Session.getGoods().isEmpty()) {
+            Session.getGoods().add(0, this);
+        } else {
+            Session.getGoods().set(0, this);
+        }
+        company = new Agent((getName() + " company"), true);
+        //saveGood(true);
+    }
+
+    public boolean getGoodLock() {
+        return goodLock;
+    }
+    public void setGoodLock(boolean val) {
+        goodLock = val;
     }
 
     /**
      * This gets the most recent ID and is used for setting the static id.
      * @return the highest ID number present in the agent table
      */
+    /*
     private static int retrieveLatestId(){
         int latestId = 0;
         try(SQLConnector connector = new SQLConnector()){
@@ -90,35 +115,13 @@ public class Good implements Comparable{
         }
         return latestId + 1;
     }
-
-    /**
-     * This looks at the average market price of other goods and sets a price within a percentage range
-     * @return the price of the ownedGood
      */
-    private static float definePrice(){
-        float price = getAvgMarketPrice();
-//        float floor = price * ((100-PRICE_VARIANCE_PERCENT)/100f);
-//        float ceiling = price * ((100+PRICE_VARIANCE_PERCENT)/100f);
-        float floor = 100;
-        float ceiling = 2000;
-        return rand.nextInt((int)(ceiling - floor) + 1 ) + floor;
-    }
 
-    /**
-     * This takes the all of the prices of goods in the market and returns the average price
-     * @return the average price for all goods in the market
-     */
-    private static float getAvgMarketPrice(){
-        float price = 100;
-        try(SQLConnector connector = new SQLConnector()){
-            ResultSet resultSet = connector.runQuery(SQLQueries.GET_AVERAGE_MARKET_PRICE,PropertiesLabels.getMarketDatabase());
-            while(resultSet.next()){
-                price = resultSet.getFloat("price");
-            }
-        } catch (SQLException e) {
-           LOGGER.info("Error retrieving an average market price. returning default of 100");
-        }
-        return price;
+    public static void createPrice(){
+        float floor = 1;
+        float ceiling = 100;
+        Good.price = rand.nextInt((int)(ceiling - floor) + 1 ) + floor;
+        Good.startingPrice = Good.getPrice();
     }
 
     public void saveGood(boolean isNew){
@@ -129,9 +132,29 @@ public class Good implements Comparable{
             query = SQLQueries.createUpdateQuery(this);
         }
         try(SQLConnector connector = new SQLConnector()){
-            connector.runUpdate(query,AppProperties.getProperty(PropertiesLabels.getMarketDatabase()));
+            connector.runUpdate(query,PropertiesLabels.getMarketDatabase());
         } catch (Exception e){
-            LOGGER.info("Error saving ownedGood with id " + this.getId() + " : " + e.getMessage());
+            LOGGER.info("Error saving Good with id " + this.getId() + " : " + e.getMessage());
+        }
+    }
+
+    public static void runUpdate(boolean isNew) {
+        String query = null;
+        Good good = null;
+        if (!(Session.getGoods().isEmpty())) {
+            good = Session.getGoods().get(0);
+        }
+        if (!(good == null)) {
+            if (isNew) {
+                query = SQLQueries.createInsertQuery(good);
+            } else {
+                query = SQLQueries.createUpdateQuery(good);
+            }
+            try (SQLConnector connector = new SQLConnector()) {
+                connector.runUpdate(query, PropertiesLabels.getMarketDatabase());
+            } catch (Exception e) {
+                LOGGER.info("Error updated shares db: " + e.getMessage());
+            }
         }
     }
 
@@ -183,20 +206,23 @@ public class Good implements Comparable{
         }
     }
 
-    public void setPrice(float newPrice){
-        this.price = newPrice;
+    public static void setPrice(float newPrice){
+        prevPrice = price;
+        price = (((float)Math.round(newPrice*100))/100);
         priceData.put(Session.getNumOfRounds(),price);
+        Good.runUpdate(false);
     }
 
     @Override
     public int compareTo(Object o) {
         try{
-            Good other = (Good)o;
-            return Float.compare(this.getPrice(), other.getPrice());
+            //Good other = (Good)o;
+            //return Float.compare(getPrice(), other.getPrice());
         } catch (Exception e){
             log.warning("Comparison between an OwnedGood and a different object!");
             return 1;
         }
+        return 0;
     }
 }
 

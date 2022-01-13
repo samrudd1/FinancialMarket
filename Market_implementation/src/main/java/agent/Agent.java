@@ -2,7 +2,7 @@ package agent;
 
 import good.Good;
 import session.Session;
-import utils.AppProperties;
+import trade.Exchange;
 import utils.PropertiesLabels;
 import utils.SQLConnector;
 import lombok.*;
@@ -26,10 +26,13 @@ public class Agent {
     private static final String AGENT_DATABASE = PropertiesLabels.getMarketDatabase();
 
     private static Random rand = new Random();
+    @Getter private ArrayList<String> namesOwned = new ArrayList<>();
     @Getter @Setter private int id;
     @Getter @Setter private String name;
-    @Getter private float funds;
-    @Getter @Setter private ArrayList<OwnedGood> goodsOwned = new ArrayList<OwnedGood>();
+    private float funds;
+    @Getter private float targetPrice;
+    private boolean agentLock;
+    @Getter private ArrayList<OwnedGood> goodsOwned = new ArrayList<>();
     @Getter private Map<Integer,Float> fundData = new HashMap<Integer,Float>();
     @Getter private int startingRound;
 
@@ -37,11 +40,24 @@ public class Agent {
      * If a name is not given to the constructor
      */
     public Agent(){
+        setAgentLock(false);
         id = findId(); //Make sure nextId is handled okay with concurrency
         name = "Agent" + id;
         funds = assignFunds();
+        createTargetPrice();
         fundData.put(Session.getNumOfRounds(),funds);
-        goodsOwned = new ArrayList<>();
+        this.startingRound = Session.getNumOfRounds();
+        Session.getAgents().put(id,this);
+        saveUser(true);
+    }
+
+    public Agent(String name, boolean company){
+        setAgentLock(false);
+        id = findId(); //Make sure nextId is handled okay with concurrency
+        this.name = name;
+        funds = 0;
+        //createTargetPrice();
+        fundData.put(Session.getNumOfRounds(),funds);
         this.startingRound = Session.getNumOfRounds();
         Session.getAgents().put(id,this);
         saveUser(true);
@@ -52,11 +68,11 @@ public class Agent {
      * @param name The String value to set as the name of the agent.
      */
     Agent(String name){
+        setAgentLock(false);
         id = findId();
         this.name = name.substring(0, 1).toUpperCase() + name.substring(1); //capitalizing
         funds = assignFunds();
         fundData.put(Session.getNumOfRounds(),funds);
-        goodsOwned = new ArrayList<>();
         this.startingRound = Session.getNumOfRounds();
         Session.getAgents().put(id,this);
         saveUser(true);
@@ -69,12 +85,18 @@ public class Agent {
      * @param funds the agents funds
      */
     public Agent(int id, String name, float funds){
+        setAgentLock(false);
         this.id = id;
         this.name = name;
         this.funds = funds;
         fundData.put(Session.getNumOfRounds(),funds);
         this.startingRound = Session.getNumOfRounds();
         Session.getAgents().put(id,this);
+    }
+
+    private void createTargetPrice() {
+        targetPrice = (float) ((float)Math.round((Math.random() * 10) + 95) * (Good.getStartingPrice() * 0.01));
+        LOGGER.info(name + " target price: " + targetPrice);
     }
 
     /**
@@ -86,20 +108,89 @@ public class Agent {
         return (float) fundsInt;
     }
 
+    public void CheckInitial(int wantToBuy) {
+        if (getFunds() < (wantToBuy * Good.getPrice())) {
+            wantToBuy = (int) Math.floor(getFunds() / Good.getPrice());
+        }
+        if (!(wantToBuy == 0)){
+            InitiateTrade it1 = new InitiateTrade(this, Good.getCompany(), Session.getGoods().get(0), wantToBuy, Good.getPrice());
+            Thread t1 = new Thread(it1);
+            t1.start();
+            try {
+                Thread.sleep(1);
+            } catch (InterruptedException e) {
+                LOGGER.info("failed sleep");
+            }
+            saveUser(false);
+        }
+    }
+
+    public boolean getAgentLock() {
+        return agentLock;
+    }
+    public void setAgentLock(boolean val) {
+        agentLock = val;
+    }
+
+    private class InitiateTrade implements Runnable {
+        @Getter private Agent buyer;
+        @Getter private Agent seller;
+        @Getter private Good good;
+        @Getter private int amountBought;
+        @Getter private float price;
+
+        public InitiateTrade(Agent buyer, Agent seller, Good good, int amountBought, float price) {
+            this.buyer = buyer;
+            this.seller = seller;
+            this.good = good;
+            this.amountBought = amountBought;
+            this.price = price;
+        }
+
+        public void run() {
+            try {
+                Exchange.getInstance().openingTrade(buyer, seller, good, amountBought, price);
+                LOGGER.info("trade executed between " + buyer.getName() + "and " + seller.getName() + " for " + amountBought + " share/s at a price of " + price + " each.");
+            } catch (InterruptedException e) {
+                LOGGER.info("trade failed");
+            }
+            /*
+            if ((buyer.getGoodsOwned().isEmpty())) {
+                buyer.getGoodsOwned().add(0, new OwnedGood(buyer, good, amountBought, (((float)Math.round(Good.getPrice() * 100)) / 100), true));
+                buyer.setFunds(buyer.getFunds() - (Good.getPrice() * amountBought));
+                Session.setMarketFunds(Session.getMarketFunds() + (Good.getPrice() * amountBought));
+            } else {
+                OwnedGood tempOwned = buyer.getGoodsOwned().get(0);
+                float newBoughtAt = (float)(Math.round(((tempOwned.getBoughtAt() * tempOwned.getNumOwned()) + (amountBought * Good.getPrice())) * 100) / ((tempOwned.getNumOwned() + amountBought) * 100));
+                int newNumOwned = (tempOwned.getNumOwned() + amountBought);
+                buyer.setFunds((buyer.getFunds() - (Good.getPrice() * amountBought)));
+                Session.setMarketFunds(Session.getMarketFunds() + (Good.getPrice() * amountBought));
+                LOGGER.info("new bought out price for " + buyer.getName() + " is " + newBoughtAt + " and total owned is " + newNumOwned + " shares.");
+                OwnedGood newOne = new OwnedGood(buyer, good, newNumOwned, newBoughtAt, false);
+                buyer.getGoodsOwned().set(0, newOne);
+            }
+            Good.setDirectlyAvailable(Good.getDirectlyAvailable() - amountBought);
+            */
+            //LOGGER.info("executing trade with " + buyer.getName() + " directly for " + amountBought + " share/s at a price of " + Good.getPrice() + " each.");
+        }
+    }
+
     /**
      * This sells the owned goods back to the direct good and gives the user funds. Currently only a debug tool.
      */
     public void closeAccount(){
-        if(!goodsOwned.isEmpty()){
+        if(!(goodsOwned.isEmpty())){
             for(OwnedGood ownedGood : goodsOwned){
                 Good good = ownedGood.getGood();
-                good.setAmountUnsold(good.getAmountUnsold() + ownedGood.getNumberOwned());
+                /*
+                Good.setDirectlyAvailable(Good.getDirectlyAvailable() + ownedGood.getNumberOwned());
                 float fundsIncrease = ownedGood.getNumberOwned() * good.getPrice();
                 setFunds(fundsIncrease + funds);
                 Session.getOwnerships().values().remove(ownedGood);
                 Session.getOwnershipsToDelete().add(ownedGood);
+                 */
             }
-            goodsOwned.clear(); //could add back to direct for sale, or sell all for under market price
+            //goodsOwned.clear(); //could add back to direct for sale, or sell all for under market price
             saveUser(false);
         }
     }
@@ -157,6 +248,7 @@ public class Agent {
         } catch (SQLException e) {
             LOGGER.info("Error retrieving latest agent id: " + e.getMessage());
         }
+        LOGGER.info("highest id is " + latestId);
         return latestId;
     }
 
@@ -187,5 +279,9 @@ public class Agent {
     public void setFunds(float newFunds){
         this.funds = newFunds;
         fundData.put(Session.getNumOfRounds(),funds);
+    }
+
+    public float getFunds() {
+        return (((float)Math.round(this.funds * 100)) / 100);
     }
 }

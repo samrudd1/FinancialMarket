@@ -16,9 +16,9 @@ public class GoodTest {
 
     @Test
     void createGoodTest(){
-        Good testGood = new Good();
+        Good testGood = new Good(true);
         Session.getGoodsToDelete().add(testGood);
-        assertEquals("Good" + testGood.getId(),testGood.getName());
+        assertEquals("Good" + testGood.getId(),Good.getName());
     }
 
     @AfterAll
