@@ -42,7 +42,7 @@ class SQLQueries {
      * @return the query needing to be used to perform insertion.
      */
     static String createInsertQuery(OwnedGood ownedGood){
-        String data = ownedGood.getOwner().getId() + "," + ownedGood.getGood().getId() + "," + ownedGood.getNumOwned() + "," + (((float)Math.round(Good.getPrice() * 100)) / 100);
+        String data = ownedGood.getOwner().getId() + "," + ownedGood.getGood().getId() + "," + ownedGood.getNumOwned() + "," + (((float)Math.round(ownedGood.getGood().getPrice() * 100)) / 100);
         return OWNERSHIP_INSERT.replace("@data",data);
     }
 

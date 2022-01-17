@@ -12,7 +12,7 @@ import java.util.Scanner;
 
 @Log
 public class RunMarket {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
 
         try(SQLConnector connector = new SQLConnector()){
             connector.runUpdate("DELETE FROM good;","marketdb");
@@ -36,13 +36,12 @@ public class RunMarket {
         Session.setNumAgents(startingAgentNo);
         Good.setOutstandingShares(startingGoodNo);
         Good.setDirectlyAvailable(startingGoodNo);
-        Good.createPrice();
         Session.openSession();
-        log.info("Stock starting price: " + Good.getStartingPrice());
+        //log.info("Stock starting price: " + Good.getStartingPrice());
+        new Good(true);
         for(int i = 0; i<startingAgentNo; i++){
             new Agent();
         }
-        new Good(true);
         new TradingCycle().startTrading(noOfRounds);
 
         /*
@@ -55,7 +54,6 @@ public class RunMarket {
         } catch (InterruptedException e) {
             log.info("error trying to sleep");
         }
-        log.info("Market funds raised: " + Good.getCompany().getFunds());
         Session.closeSession();
     }
 }

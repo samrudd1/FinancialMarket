@@ -8,7 +8,7 @@ import java.util.Map;
 
 @Log
 public class PythonCallAgent {
-    private static final String COMMAND = "python altair_plot_agents.py";
+    private static final String COMMAND = "python altair_plot_agent.py";
     private int agentId;
     private Map<Integer,Float> fundData;
 

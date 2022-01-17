@@ -29,7 +29,7 @@ class AgentTest {
 
     @Test
     void newNamedAgent(){
-        Agent namedAgent = new Agent("dummy");
+        Agent namedAgent = new Agent(3245, "dummy", 10000);
         Session.getAgentsToDelete().add(namedAgent);
         assertEquals("Dummy",namedAgent.getName());
         currID++;

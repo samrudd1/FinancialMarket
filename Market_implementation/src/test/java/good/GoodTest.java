@@ -15,7 +15,7 @@ public class GoodTest {
     }
 
     @Test
-    void createGoodTest(){
+    void createGoodTest() throws InterruptedException {
         Good testGood = new Good(true);
         Session.getGoodsToDelete().add(testGood);
         assertEquals("Good" + testGood.getId(),Good.getName());

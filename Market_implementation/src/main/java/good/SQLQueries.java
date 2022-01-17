@@ -25,7 +25,7 @@ public class SQLQueries {
      * @return the query needing to be used to perform insertion.
      */
     static String createInsertQuery(Good good){
-        String data = "'" + Good.getName() + "' , " + Good.getPrice() + "," + 0 + "," + Good.getOutstandingShares() + "," + Good.getDirectlyAvailable() + "," + 0 + "," + 0;
+        String data = "'" + Good.getName() + "' , " + good.getPrice() + "," + 0 + "," + Good.getOutstandingShares() + "," + Good.getDirectlyAvailable() + "," + 0 + "," + 0;
         return GOOD_INSERT.replace("@data",data);
     }
 
@@ -35,7 +35,7 @@ public class SQLQueries {
      * @return the query needed
      */
     static String createUpdateQuery(Good good){
-        String price = String.valueOf(Good.getPrice());
+        String price = String.valueOf(good.getPrice());
         String prevPrice = String.valueOf(Good.getPrevPrice());
         String available = String.valueOf(Good.getOutstandingShares());
         String unsold = String.valueOf(Good.getDirectlyAvailable());

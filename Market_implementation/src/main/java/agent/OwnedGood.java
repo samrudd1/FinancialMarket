@@ -19,12 +19,14 @@ public class OwnedGood implements Comparable{
     @Getter @Setter private Agent owner;
     @Getter @Setter private Good good;
     @Getter @Setter private int numOwned;
+    @Getter @Setter private int numAvailable;
     @Getter @Setter private float boughtAt;
 
-    public OwnedGood(Agent owner, Good good, int numOwned, float boughtAt, boolean isNew){
+    public OwnedGood(Agent owner, Good good, int numOwned, int numAvailable, float boughtAt, boolean isNew){
         this.owner = owner;
         this.good = good;
         this.numOwned = numOwned;
+        this.numAvailable = numAvailable;
         this.boughtAt = boughtAt;
         owner.getNamesOwned().add(Good.getName());
         Session.getOwnerships().put(owner.getId() + "-" + good.getId() + "-" + boughtAt,this);

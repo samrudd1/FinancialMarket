@@ -82,7 +82,7 @@ public class Session {
                         LOGGER.info("too many goods owned in database for " + good.getId());
                     }
                 }
-                agent.getGoodsOwned().add(0, new OwnedGood(agent, good, noOwned, boughtAt, true));
+                agent.getGoodsOwned().add(0, new OwnedGood(agent, good, noOwned, noOwned, boughtAt, true));
             }
             resultSet.close();
             isOpen = true;
@@ -131,7 +131,7 @@ public class Session {
             }
             resultSet.close();
             isOpen = true;
-        } catch (SQLException e) {
+        } catch (SQLException | InterruptedException e) {
             LOGGER.info("Error opening session, populating goods: " + e.getMessage());
             didOpen = false;
         }

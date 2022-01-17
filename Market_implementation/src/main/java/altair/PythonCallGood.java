@@ -8,7 +8,7 @@ import java.util.Map;
 
 @Log
 public class PythonCallGood {
-    private static final String COMMAND = "python altair_plot_goods.py";
+    private static final String COMMAND = "python plot_good.py";
     private int goodId;
     private Map<Integer,Float> fundData;
 
