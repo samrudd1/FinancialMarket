@@ -13,7 +13,6 @@ import utils.SQLConnector;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.text.DecimalFormat;
 import java.util.*;
 import java.util.logging.Logger;
 
@@ -31,9 +30,9 @@ public class Good implements Comparable{
     @Getter static private float price;
     @Getter static private float startingPrice;
     @Getter static private float vwap = 0;
-    @Getter static private float volume = 0;
+    @Getter static private double volume = 0;
     @Getter static private float lowest = 110;
-    @Getter static private float highest = 0;
+    @Getter static private float highest = 1;
     @Getter @Setter static private Integer numTrades = 0;
     static private ArrayList<Offer> bid = new ArrayList<>();
     static private ArrayList<Offer> ask = new ArrayList<>();
@@ -149,7 +148,7 @@ public class Good implements Comparable{
         }
         askLock = false;
         notify();
-        return 0;
+        return 99999;
     }
 
     public synchronized Offer getHighestBidOffer() throws InterruptedException {
@@ -186,8 +185,16 @@ public class Good implements Comparable{
         bidLock = true;
         Collections.sort(bid);
         String str = "";
-        for (Offer offer : bid) {
-            str += "[q: " + offer.getNumOffered() + " p: " + offer.getPrice() + "] ";
+        if (bid.size() > 100) {
+            for (int i = 100; i >= 0; i--) {
+                Offer offer = bid.get(i);
+                str += "[q: " + offer.getNumOffered() + " p: " + offer.getPrice() + "] ";
+            }
+        } else {
+            for (int i = (bid.size() - 1); i >= 0; i--) {
+                Offer offer = bid.get(i);
+                str += "[q: " + offer.getNumOffered() + " p: " + offer.getPrice() + "] ";
+            }
         }
         bidLock = false;
         notify();
@@ -198,8 +205,15 @@ public class Good implements Comparable{
         askLock = true;
         Collections.sort(ask);
         String str = "";
-        for (Offer offer : ask) {
-            str += "[q: " + offer.getNumOffered() + " p: " + offer.getPrice() + "] ";
+        if (ask.size() > 100) {
+            for (int i = 0; i < 100; i++) {
+                Offer offer = ask.get(i);
+                str += "[q: " + offer.getNumOffered() + " p: " + offer.getPrice() + "] ";
+            }
+        } else {
+            for (Offer offer : ask) {
+                str += "[q: " + offer.getNumOffered() + " p: " + offer.getPrice() + "] ";
+            }
         }
         askLock = false;
         notify();
@@ -371,7 +385,7 @@ public class Good implements Comparable{
         priceData.put(numTrades, price);
         if (newPrice > highest) { highest = newPrice; }
         if (newPrice < lowest) { lowest = newPrice; }
-        Good.runUpdate(false);
+        //Good.runUpdate(false);
     }
 
     public void setPrice(Offer offer, int traded){
@@ -383,9 +397,9 @@ public class Good implements Comparable{
         priceList.add(price);
         if (newPrice > highest) { highest = newPrice; }
         if (newPrice < lowest) { lowest = newPrice; }
-        vwap = (((vwap * volume) + (offer.getPrice() * traded)) / (volume + traded));
+        vwap = (float) (((vwap * volume) + (offer.getPrice() * traded)) / (volume + traded));
         volume += traded;
-        Good.runUpdate(false);
+        //Good.runUpdate(false);
     }
 
     @Override

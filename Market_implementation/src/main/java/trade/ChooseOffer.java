@@ -1,12 +1,10 @@
 package trade;
 
+import agent.Agent;
 import agent.OwnedGood;
 import good.Good;
 import good.Offer;
-import agent.Agent;
 import lombok.SneakyThrows;
-
-import java.util.concurrent.CountDownLatch;
 
 public class ChooseOffer implements Runnable {
     Agent agent;
@@ -22,21 +20,26 @@ public class ChooseOffer implements Runnable {
     @Override
     public synchronized void run() {
         float random = (float) Math.random();
+        float lowestAsk = Exchange.getInstance().getGoods().get(0).getLowestAsk();
+        float highestBid = Exchange.getInstance().getGoods().get(0).getHighestBid();
+        float price = Good.getPrice();
+
+        //if (random > 0.9) {
+            //agent.changeTargetPrice(price);
+        //}
         if (random > 0.9) {
             agent.changeTargetPrice();
         }
-        float lowestAsk = Exchange.getInstance().getGoods().get(0).getLowestAsk();
-        float highestBid = Exchange.getInstance().getGoods().get(0).getHighestBid();
 
         while(agent.getAgentLock()) wait();
         agent.setAgentLock(true);
         //synchronized (tc) {
         if (agent.getGoodsOwned().size() > 0) {
             int offering = (int) Math.round((float) agent.getGoodsOwned().get(0).getNumAvailable() * 0.25);
-            if (offering > 500) {
-                offering = 500;
+            if (offering > 1000) {
+                offering = 1000;
             }
-            if ((agent.getTargetPrice() > highestBid) && (highestBid != 0) && (agent.getTargetPrice() < (Good.getPrice() * 1.04))) {// || ((targetPrice < lowestAsk) && (targetPrice > highestBid) && (highestBid != 0))) {
+            if ((agent.getTargetPrice() > highestBid) && (highestBid != 0) && (agent.getTargetPrice() < (price * 1.05))) {// || ((targetPrice < lowestAsk) && (targetPrice > highestBid) && (highestBid != 0))) {
                 if (!agent.getPlacedAsk()) {
                     if (offering > 0) {
                         try {
@@ -50,16 +53,16 @@ public class ChooseOffer implements Runnable {
             }
         }
 
-        if (agent.getFunds() > Good.getPrice()) {
-            float posPurchase = agent.getFunds() / Good.getPrice();
+        if (agent.getFunds() > price) {
+            float posPurchase = agent.getFunds() / price;
             int purchaseLimit = (int) Math.floor(posPurchase);
             if (posPurchase > 10) {
                 purchaseLimit = (int) Math.round(posPurchase * 0.25);
             }
-            if (purchaseLimit > 500) {
-                purchaseLimit = 500;
+            if (purchaseLimit > 1000) {
+                purchaseLimit = 1000;
             }
-            if ((agent.getTargetPrice() < lowestAsk) && (agent.getTargetPrice() > (Good.getPrice() * 0.96))) { //|| ((targetPrice > highestBid) && (targetPrice < lowestAsk) && (highestBid != 0))) {
+            if ((agent.getTargetPrice() < lowestAsk) && (agent.getTargetPrice() > (price * 0.95))) { //|| ((targetPrice > highestBid) && (targetPrice < lowestAsk) && (highestBid != 0))) {
                 if (!agent.getPlacedBid()) {
                     if (purchaseLimit > 0) {
                         try {
@@ -81,7 +84,7 @@ public class ChooseOffer implements Runnable {
                     if (offer.getNumOffered() < offering) {
                         offering = offer.getNumOffered();
                     }
-                    if (highestBid > (Good.getPrice() * 0.995)) {
+                    if (highestBid > (price * 0.998)) {
                         if (offering > 0) {
                             boolean success = Exchange.getInstance().execute(offer.getOfferMaker(), agent, offer, offering, tc);
                             if (!success) {
@@ -93,8 +96,8 @@ public class ChooseOffer implements Runnable {
             }
         }
 
-        if (agent.getFunds() > Good.getPrice()) {
-            if ((lowestAsk != 0) && (lowestAsk < agent.getTargetPrice())) {
+        if (agent.getFunds() > price) {
+            if ((lowestAsk != 99999) && (lowestAsk < agent.getTargetPrice())) {
                 Offer offer = Exchange.getInstance().getGoods().get(0).getLowestAskOffer();
                 int wantToBuy = 0;
                 if (!(offer.getOfferMaker().getName().equals(agent.getName()))) {
@@ -103,7 +106,7 @@ public class ChooseOffer implements Runnable {
                     } else {
                         wantToBuy = (int) Math.floor(agent.getFunds() / offer.getPrice());
                     }
-                    if (lowestAsk < (Good.getPrice() * 1.005)) {
+                    if (lowestAsk < (price * 1.002)) {
                         if ((wantToBuy > 0) && (agent.getId() != offer.getOfferMaker().getId())) {
                             boolean success = Exchange.getInstance().execute(agent, offer.getOfferMaker(), offer, wantToBuy, tc);
                             if (!success) {
@@ -114,22 +117,52 @@ public class ChooseOffer implements Runnable {
                 }
             }
         }
-        if (random > 0.9) {
-            agent.changeTargetPrice();
+
+        //add method to remove far out bids and asks to unlock assets for trading
+        if (agent.getBidsPlaced().size() > 0) {
+            agent.getBidsPlaced().trimToSize();
+            for (Offer offer : agent.getBidsPlaced()) {
+                if (offer.getPrice() < (price * 0.9)) {
+                    offer.getGood().removeBid(offer);
+                }
+            }
+            agent.getBidsPlaced().trimToSize();
         }
+        if (agent.getAsksPlaced().size() > 0) {
+            agent.getAsksPlaced().trimToSize();
+            for (Offer offer : agent.getAsksPlaced()) {
+                if (offer.getPrice() > (price * 1.1)) {
+                    offer.getGood().removeBid(offer);
+                }
+            }
+            agent.getAsksPlaced().trimToSize();
+        }
+
+        //causes massive slowdown and causes price to drop a lot in later rounds
+        /*
+        if (random < 0.2) {
+            agent.createTargetPrice();
+        }
+        */
         agent.setAgentLock(false);
-        notifyAll();
+        notify();
         //agent.saveUser(false);
         return;
     }
 
     private void createBid(float price, Good good, int numOffered) throws InterruptedException {
-        good.addBid(new Offer(price, agent, good, numOffered));
+        Offer newBid = new Offer(price, agent, good, numOffered);
+        good.addBid(newBid);
         agent.setFunds((agent.getFunds() - (price * numOffered)));
+        agent.getBidsPlaced().trimToSize();
+        agent.getBidsPlaced().add(newBid);
     }
 
     private void createAsk(float price, OwnedGood good, int numOffered) throws InterruptedException {
-        good.getGood().addAsk(new Offer(price, agent, good.getGood(), numOffered));
+        Offer newAsk = new Offer(price, agent, good.getGood(), numOffered);
+        good.getGood().addAsk(newAsk);
         good.setNumAvailable((good.getNumAvailable() - numOffered));
+        agent.getAsksPlaced().trimToSize();
+        agent.getAsksPlaced().add(newAsk);
     }
 }

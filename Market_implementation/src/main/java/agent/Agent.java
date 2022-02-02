@@ -2,12 +2,14 @@ package agent;
 
 import good.Good;
 import good.Offer;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 import session.Session;
 import trade.Exchange;
 import trade.TradingCycle;
 import utils.PropertiesLabels;
 import utils.SQLConnector;
-import lombok.*;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -23,8 +25,8 @@ import java.util.logging.Logger;
 @ToString
 public class Agent {
     private static final Logger LOGGER = Logger.getLogger(Agent.class.getName());
-    private static final int MIN_STARTING_FUNDS = 100;
-    private static final int MAX_STARTING_FUNDS = 100000;
+    private static final int MIN_STARTING_FUNDS = 1000;
+    private static final int MAX_STARTING_FUNDS = 1000000;
     private static final String AGENT_DATABASE = PropertiesLabels.getMarketDatabase();
 
     private static Random rand = new Random();
@@ -32,14 +34,16 @@ public class Agent {
     @Getter @Setter private int id;
     @Getter @Setter private String name;
     private float funds;
-    @Getter private float targetPrice;
+    @Getter @Setter private float targetPrice;
     private boolean agentLock;
     private ArrayList<OwnedGood> goodsOwned = new ArrayList<>();
     @Getter private Map<Integer,Float> fundData = new HashMap<Integer,Float>();
     @Getter private int startingRound;
     @Getter private boolean placedBid;
     @Getter private boolean placedAsk;
-    @Getter @Setter private static int sentiment = 12;
+    @Getter private ArrayList<Offer> bidsPlaced = new ArrayList<>();
+    @Getter private ArrayList<Offer> asksPlaced = new ArrayList<>();
+    @Getter @Setter private static int sentiment;
     //@Getter @Setter private Offer bidMade;
     //@Getter @Setter private Offer AskMade;
 
@@ -94,16 +98,26 @@ public class Agent {
         saveUser(false);
     }
 
-    private void createTargetPrice() {
+    public void createTargetPrice() {
         Random rand = new Random();
-        int chance = rand.nextInt(sentiment);
-        targetPrice = (float)((float)(Math.round((chance + 96) * Good.getPrice()) * 0.01));
+        int chance = rand.nextInt(10);
+        targetPrice = (float)(((float)Math.round((chance + 96) * Good.getPrice())) * 0.01);
+        placedAsk = false;
+        placedBid = false;
         //LOGGER.info(name + " target price: " + targetPrice);
     }
     public void changeTargetPrice() {
         Random rand = new Random();
         int chance = rand.nextInt(sentiment);
-        targetPrice = (float)((float)(Math.round((chance + 96) * targetPrice) * 0.01));
+        targetPrice = (float)(((float)Math.round((chance + 91) * targetPrice)) * 0.01);
+        placedAsk = false;
+        placedBid = false;
+    }
+    public void changeTargetPrice(float price) {
+        targetPrice = price;
+        Random rand = new Random();
+        int chance = rand.nextInt(sentiment);
+        targetPrice = (float)(((float)Math.round((chance + 91) * targetPrice)) * 0.01);
         placedAsk = false;
         placedBid = false;
     }
@@ -132,7 +146,7 @@ public class Agent {
                 } catch (InterruptedException e) {
                     LOGGER.info("failed sleep");
                 }
-                saveUser(false);
+                //saveUser(false);
             }
         }
     }

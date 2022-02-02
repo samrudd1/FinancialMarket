@@ -6,8 +6,6 @@ import lombok.extern.java.Log;
 import session.Session;
 import utils.SQLConnector;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.Scanner;
 
 @Log
@@ -37,6 +35,7 @@ public class RunMarket {
         Good.setOutstandingShares(startingGoodNo);
         Good.setDirectlyAvailable(startingGoodNo);
         Session.openSession();
+        Agent.setSentiment(18);
         //log.info("Stock starting price: " + Good.getStartingPrice());
         new Good(true);
         for(int i = 0; i<startingAgentNo; i++){

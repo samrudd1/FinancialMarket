@@ -2,10 +2,8 @@ package session;
 
 import agent.Agent;
 import agent.OwnedGood;
-import altair.PythonCallAgent;
-import altair.PythonCallGood;
-import lombok.Getter;
 import good.Good;
+import lombok.Getter;
 import lombok.Setter;
 import utils.PropertiesLabels;
 import utils.SQLConnector;
@@ -150,7 +148,7 @@ public class Session {
         } else {
             boolean didClose = false;
             try{
-                makeCharts();
+                //makeCharts();
                 //deleteOwnership();
                 //deleteAgents();
                 //deleteGoods();
@@ -163,15 +161,6 @@ public class Session {
                 LOGGER.info("Error writing agent changes to MySQL: " + e.getMessage());
             }
             return didClose;
-        }
-    }
-
-    private static void makeCharts(){
-        for(Agent agent : agents.values()){
-            new PythonCallAgent(agent).execute();
-        }
-        for(Good good : goods){
-            new PythonCallGood(good).execute();
         }
     }
 

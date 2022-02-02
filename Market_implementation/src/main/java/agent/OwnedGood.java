@@ -9,11 +9,11 @@ import session.Session;
 import utils.PropertiesLabels;
 import utils.SQLConnector;
 
-import java.util.ArrayList;
 import java.util.logging.Logger;
 
 @EqualsAndHashCode
 @Log
+//currently not saved to database, add at end of sim or run on other thread
 public class OwnedGood implements Comparable{
     private static final Logger LOGGER = Logger.getLogger(OwnedGood.class.getName());
     @Getter @Setter private Agent owner;
@@ -30,7 +30,7 @@ public class OwnedGood implements Comparable{
         this.boughtAt = boughtAt;
         owner.getNamesOwned().add(Good.getName());
         Session.getOwnerships().put(owner.getId() + "-" + good.getId() + "-" + boughtAt,this);
-            save(isNew);
+            //save(isNew);
     }
 
     public void save(boolean isNew){

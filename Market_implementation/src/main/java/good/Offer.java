@@ -1,9 +1,8 @@
 package good;
 
 import agent.Agent;
-import lombok.*;
-
-import java.util.Comparator;
+import lombok.Getter;
+import lombok.Setter;
 
 public class Offer implements Comparable<Offer> {
     @Getter @Setter private float price;

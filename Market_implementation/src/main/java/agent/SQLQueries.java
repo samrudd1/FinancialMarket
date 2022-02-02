@@ -1,7 +1,5 @@
 package agent;
 
-import good.Good;
-
 /**
  * This class purely contains all of the queries used in the agent package.
  * This is to make the other classes more readable
