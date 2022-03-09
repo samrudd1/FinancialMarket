@@ -34,6 +34,7 @@ public class Agent {
     @Getter @Setter private int id;
     @Getter @Setter private String name;
     private float funds;
+    @Getter private float startingFunds;
     @Getter @Setter private float targetPrice;
     private boolean agentLock;
     private ArrayList<OwnedGood> goodsOwned = new ArrayList<>();
@@ -44,20 +45,35 @@ public class Agent {
     @Getter private ArrayList<Offer> bidsPlaced = new ArrayList<>();
     @Getter private ArrayList<Offer> asksPlaced = new ArrayList<>();
     @Getter @Setter private static int sentiment;
+    @Getter @Setter int chance;
+    @Getter @Setter private int prevSentiment = 30;
+    @Getter @Setter private float prevRoundPrice = Good.getPrice();
+    @Getter @Setter private boolean prevPriceUp;
+
     //@Getter @Setter private Offer bidMade;
     //@Getter @Setter private Offer AskMade;
 
 
     public Agent(){
         setAgentLock(false);
+        Random rand = new Random();
+        chance = rand.nextInt(3);
         id = findId(); //Make sure nextId is handled okay with concurrency
-        name = "Agent" + id;
+        if (chance == 1) {
+            name = "Sentiment " + id;
+        } else if (chance == 2) {
+            name = "Momentum " + id;
+        } else {
+            name = "Default " + id;
+        }
         funds = assignFunds();
+        startingFunds = funds;
         createTargetPrice();
         fundData.put(Session.getNumOfRounds(),funds);
         this.startingRound = Session.getNumOfRounds();
         Session.getAgents().put(id,this);
         saveUser(true);
+        setPrevPriceUp(false);
     }
 
     public Agent(String name, boolean company){
@@ -65,11 +81,13 @@ public class Agent {
         id = (findId()); //Make sure nextId is handled okay with concurrency
         this.name = name;
         funds = 0;
+        startingFunds = funds;
         targetPrice = Good.getStartingPrice();
         fundData.put(Session.getNumOfRounds(),funds);
         this.startingRound = Session.getNumOfRounds();
         Session.getAgents().put(id,this);
         saveUser(true);
+        setPrevPriceUp(false);
     }
 
     /*
@@ -88,36 +106,37 @@ public class Agent {
         setAgentLock(false);
         setPlacedBid(false);
         setPlacedAsk(false);
+        Random rand = new Random();
+        chance = rand.nextInt(3);
         this.id = id; //Make sure nextId is handled okay with concurrency
         this.name = name;
         this.funds = funds;
+        startingFunds = funds;
         createTargetPrice();
         fundData.put(Session.getNumOfRounds(),funds);
         this.startingRound = Session.getNumOfRounds();
         Session.getAgents().put(id,this);
         saveUser(false);
+        setPrevPriceUp(false);
     }
 
     public void createTargetPrice() {
         Random rand = new Random();
-        int chance = rand.nextInt(10);
-        targetPrice = (float)(((float)Math.round((chance + 96) * Good.getPrice())) * 0.01);
+        int chance = rand.nextInt(100);
+        targetPrice = (float) (((float) Math.round((chance + 975) * Good.getPrice())) * 0.001);
+        if (chance == 1) {
+            targetPrice = (float) (Good.getPrice() * 1.06);
+        }
         placedAsk = false;
         placedBid = false;
         //LOGGER.info(name + " target price: " + targetPrice);
     }
     public void changeTargetPrice() {
-        Random rand = new Random();
-        int chance = rand.nextInt(sentiment);
-        targetPrice = (float)(((float)Math.round((chance + 91) * targetPrice)) * 0.01);
-        placedAsk = false;
-        placedBid = false;
-    }
-    public void changeTargetPrice(float price) {
-        targetPrice = price;
-        Random rand = new Random();
-        int chance = rand.nextInt(sentiment);
-        targetPrice = (float)(((float)Math.round((chance + 91) * targetPrice)) * 0.01);
+        if (chance != 1) {
+            Random rand = new Random();
+            int chance = rand.nextInt(sentiment);
+            targetPrice = (float) (((float) Math.round((chance + 91) * targetPrice)) * 0.01);
+        }
         placedAsk = false;
         placedBid = false;
     }
@@ -352,4 +371,6 @@ public class Agent {
     public float getFunds() {
         return (((float)Math.round(this.funds * 100)) / 100);
     }
+
+    public boolean getPrevPriceUp() { return prevPriceUp; }
 }
