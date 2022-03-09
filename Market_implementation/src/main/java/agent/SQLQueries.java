@@ -1,5 +1,7 @@
 package agent;
 
+import good.Good;
+
 /**
  * This class purely contains all of the queries used in the agent package.
  * This is to make the other classes more readable
@@ -8,9 +10,9 @@ class SQLQueries {
 
     private SQLQueries(){}
 
-    private static final String AGENT_INSERT = "INSERT INTO agent ( name,funds ) VALUES ( @data )";
+    private static final String AGENT_INSERT = "INSERT INTO agent ( name,funds,value,startingValue,numShares,percent ) VALUES ( @data )";
 
-    private static final String AGENT_UPDATE = "UPDATE agent SET funds = @funds WHERE id = @id ";
+    private static final String AGENT_UPDATE = "UPDATE agent SET funds = @funds, value = @value, numShares = @numShares, percent = @percent WHERE id = @id ";
 
     private static final String AGENT_DELETE = "DELETE FROM agent WHERE id = @id ";
 
@@ -30,7 +32,7 @@ class SQLQueries {
      * @return the query needing to be used to perform insertion.
      */
     static String createInsertQuery(Agent agent){
-        String data = "'" + agent.getName() + "' , " + agent.getFunds();
+        String data = "'" + agent.getName() + "' , " + agent.getFunds() + " , " + agent.getFunds() + " , " + agent.getFunds() + " , " + 0 + " , " + 0;
         return AGENT_INSERT.replace("@data",data);
     }
 
@@ -52,8 +54,21 @@ class SQLQueries {
     static String createUpdateQuery(Agent agent){
         String funds = String.valueOf(agent.getFunds());
         String id = String.valueOf(agent.getId());
+        String value;
+        String numShares = String.valueOf(0);
+        String percent = String.valueOf(((float)Math.round((agent.getFunds() / agent.getStartingFunds()) * 100000) / 1000) - 100);
+        if (agent.getGoodsOwned().size() > 0) {
+            value = String.valueOf((agent.getFunds() + (agent.getGoodsOwned().get(0).getNumOwned() * Good.getPrice())));
+            numShares = String.valueOf(agent.getGoodsOwned().get(0).getNumOwned());
+            percent = String.valueOf(((float)Math.round(((agent.getFunds() + (agent.getGoodsOwned().get(0).getNumOwned() * Good.getPrice())) / agent.getStartingFunds()) * 100000) / 1000) - 100);
+        } else {
+            value = funds;
+        }
         String updatedQuery = AGENT_UPDATE.replace("@funds",funds);
         updatedQuery = updatedQuery.replace("@id", id);
+        updatedQuery = updatedQuery.replace("@value", value);
+        updatedQuery = updatedQuery.replace("@numShares", numShares);
+        updatedQuery = updatedQuery.replace("@percent", percent);
         return updatedQuery;
     }
 

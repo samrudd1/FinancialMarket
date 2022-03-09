@@ -26,6 +26,7 @@ public class Exchange {
     public static final String ANSI_GREEN = "\u001B[32m";
     public static final String ANSI_RED = "\u001B[31m";
     public static final String ANSI_RESET = "\u001B[0m";
+    public static float lastPrice;
 
     public synchronized boolean execute(Agent buyer, Agent seller, Offer offer, int amountBought, TradingCycle tc) throws InterruptedException {
         complete = false;
@@ -40,41 +41,43 @@ public class Exchange {
             //offer.getGood().setGoodLock(true);
 
             if (Good.getBid().contains(offer) || Good.getAsk().contains(offer)) {
-                if (offer.getNumOffered() > 0) {
-                    if (offer.getNumOffered() < amountBought) {
-                        amountBought = offer.getNumOffered();
-                    }
-                    if ((buyer.getGoodsOwned().isEmpty())) {
-                        buyer.getGoodsOwned().add(0, new OwnedGood(buyer, offer.getGood(), amountBought, amountBought, (((float) Math.round(offer.getPrice() * 100)) / 100), true));
-                        complete = true;
-                    } else {
-                        OwnedGood tempOwned = buyer.getGoodsOwned().get(0);
-                        float newBoughtAt = (float)Math.round(((tempOwned.getBoughtAt() * tempOwned.getNumOwned()) + (amountBought * offer.getPrice())) * 100) / ((tempOwned.getNumOwned() + amountBought) * 100);
-                        int newNumOwned = (tempOwned.getNumOwned() + amountBought);
-                        int newAvailable = (tempOwned.getNumAvailable() + amountBought);
-                        OwnedGood newOne = new OwnedGood(buyer, offer.getGood(), newNumOwned, newAvailable, newBoughtAt, false);
-                        buyer.getGoodsOwned().set(0, newOne);
-                        complete = true;
-                    }
-                    offer.getGood().setPrice(offer, amountBought);
-                    if (amountBought == offer.getNumOffered()) {
-                        if (Good.getBid().contains(offer)) {
-                            offer.getGood().removeBid(offer);
-                            offer.setNumOffered(0);
-                        } else {
-                            offer.getGood().removeAsk(offer);
-                            offer.setNumOffered(0);
+                if ((offer.getPrice() < (lastPrice * 1.01)) || (offer.getPrice() > (lastPrice * 0.99))) {
+                    if (offer.getNumOffered() > 0) {
+                        if (offer.getNumOffered() < amountBought) {
+                            amountBought = offer.getNumOffered();
                         }
-                    } else {
-                        offer.setNumOffered(offer.getNumOffered() - amountBought);
+                        if ((buyer.getGoodsOwned().isEmpty())) {
+                            buyer.getGoodsOwned().add(0, new OwnedGood(buyer, offer.getGood(), amountBought, amountBought, (((float) Math.round(offer.getPrice() * 100)) / 100), true));
+                            complete = true;
+                        } else {
+                            OwnedGood tempOwned = buyer.getGoodsOwned().get(0);
+                            float newBoughtAt = (float) Math.round(((tempOwned.getBoughtAt() * tempOwned.getNumOwned()) + (amountBought * offer.getPrice())) * 100) / ((tempOwned.getNumOwned() + amountBought) * 100);
+                            int newNumOwned = (tempOwned.getNumOwned() + amountBought);
+                            int newAvailable = (tempOwned.getNumAvailable() + amountBought);
+                            OwnedGood newOne = new OwnedGood(buyer, offer.getGood(), newNumOwned, newAvailable, newBoughtAt, false);
+                            buyer.getGoodsOwned().set(0, newOne);
+                            complete = true;
+                        }
+                        offer.getGood().setPrice(offer, amountBought);
+                        if (amountBought == offer.getNumOffered()) {
+                            if (Good.getBid().contains(offer)) {
+                                offer.getGood().removeBid(offer);
+                                offer.setNumOffered(0);
+                            } else {
+                                offer.getGood().removeAsk(offer);
+                                offer.setNumOffered(0);
+                            }
+                        } else {
+                            offer.setNumOffered(offer.getNumOffered() - amountBought);
+                        }
+
+                        buyer.setFunds(buyer.getFunds() - (offer.getPrice() * amountBought));
+                        seller.setFunds(seller.getFunds() + (offer.getPrice() * amountBought));
+                        //Runnable chartUpdate = new Thread(TradingCycle.getLiveChart());
+                        //chartUpdate.run();
                     }
-
-                    buyer.setFunds(buyer.getFunds() - (offer.getPrice() * amountBought));
-                    seller.setFunds(seller.getFunds() + (offer.getPrice() * amountBought));
-                    //Runnable chartUpdate = new Thread(TradingCycle.getLiveChart());
-                    //chartUpdate.run();
+                    lastPrice = offer.getPrice();
                 }
-
                 //buyer.setAgentLock(false);
                 //seller.setAgentLock(false);
                 //offer.getGood().setGoodLock(false);
@@ -120,6 +123,8 @@ public class Exchange {
                     }
                 }
                 */
+
+
 
                 //buyer.saveUser(false);
                 //seller.saveUser(false);

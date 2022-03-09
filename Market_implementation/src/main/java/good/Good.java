@@ -290,7 +290,7 @@ public class Good implements Comparable{
      */
 
     private void createPrice(){
-        float floor = 5;
+        float floor = 10;
         float ceiling = 50;
         price = rand.nextInt((int)(ceiling - floor) + 1 ) + floor;
         Good.startingPrice = price;

@@ -36,6 +36,7 @@ public class RunMarket {
         Good.setDirectlyAvailable(startingGoodNo);
         Session.openSession();
         Agent.setSentiment(18);
+        //Agent.setSentiment(9);
         //log.info("Stock starting price: " + Good.getStartingPrice());
         new Good(true);
         for(int i = 0; i<startingAgentNo; i++){
