@@ -25,8 +25,8 @@ import java.util.logging.Logger;
 @ToString
 public class Agent {
     private static final Logger LOGGER = Logger.getLogger(Agent.class.getName());
-    private static final int MIN_STARTING_FUNDS = 1000;
-    private static final int MAX_STARTING_FUNDS = 1000000;
+    private int MIN_STARTING_FUNDS = 1000;
+    private int MAX_STARTING_FUNDS = 1000000;
     private static final String AGENT_DATABASE = PropertiesLabels.getMarketDatabase();
 
     private static Random rand = new Random();
@@ -49,6 +49,7 @@ public class Agent {
     @Getter @Setter private int prevSentiment = 30;
     @Getter @Setter private float prevRoundPrice = Good.getPrice();
     @Getter @Setter private boolean prevPriceUp;
+    @Getter @Setter public static int ID;
 
     //@Getter @Setter private Offer bidMade;
     //@Getter @Setter private Offer AskMade;
@@ -57,12 +58,16 @@ public class Agent {
     public Agent(){
         setAgentLock(false);
         Random rand = new Random();
-        chance = rand.nextInt(3);
-        id = findId(); //Make sure nextId is handled okay with concurrency
+        chance = rand.nextInt(4);
+        id = ID;
+        ID += 1;//Make sure nextId is handled okay with concurrency
         if (chance == 1) {
-            name = "Sentiment " + id;
-        } else if (chance == 2) {
             name = "Momentum " + id;
+        } else if (chance == 2) {
+            name = "SentTrend " + id;
+        } else if (chance == 3) {
+            name = "High Frequency " + id;
+            MIN_STARTING_FUNDS *= 10;
         } else {
             name = "Default " + id;
         }
@@ -72,7 +77,7 @@ public class Agent {
         fundData.put(Session.getNumOfRounds(),funds);
         this.startingRound = Session.getNumOfRounds();
         Session.getAgents().put(id,this);
-        saveUser(true);
+        //saveUser(true);
         setPrevPriceUp(false);
     }
 
@@ -86,7 +91,7 @@ public class Agent {
         fundData.put(Session.getNumOfRounds(),funds);
         this.startingRound = Session.getNumOfRounds();
         Session.getAgents().put(id,this);
-        saveUser(true);
+        //saveUser(true);
         setPrevPriceUp(false);
     }
 
@@ -107,7 +112,7 @@ public class Agent {
         setPlacedBid(false);
         setPlacedAsk(false);
         Random rand = new Random();
-        chance = rand.nextInt(3);
+        chance = rand.nextInt(4);
         this.id = id; //Make sure nextId is handled okay with concurrency
         this.name = name;
         this.funds = funds;
@@ -116,16 +121,18 @@ public class Agent {
         fundData.put(Session.getNumOfRounds(),funds);
         this.startingRound = Session.getNumOfRounds();
         Session.getAgents().put(id,this);
-        saveUser(false);
+        //saveUser(false);
         setPrevPriceUp(false);
     }
 
     public void createTargetPrice() {
         Random rand = new Random();
-        int chance = rand.nextInt(100);
-        targetPrice = (float) (((float) Math.round((chance + 975) * Good.getPrice())) * 0.001);
+        int chance = rand.nextInt(10);
+        targetPrice = (float) (((float) Math.round((chance + 98) * Good.getPrice())) * 0.01);
         if (chance == 1) {
-            targetPrice = (float) (Good.getPrice() * 1.06);
+            targetPrice = (float) (((float) Math.round((106) * Good.getPrice())) * 0.01);
+        } else if (chance == 4) {
+            targetPrice = (float) (((float) Math.round((106) * Good.getPrice())) * 0.01);
         }
         placedAsk = false;
         placedBid = false;

@@ -150,7 +150,32 @@ public class Good implements Comparable{
         notify();
         return 99999;
     }
-
+    public synchronized float getSecondHighestBid() throws InterruptedException {
+        while (bidLock) wait();
+        bidLock = true;
+        Collections.sort(bid);
+        if (bid.size() > 1) {
+            bidLock = false;
+            notify();
+            return bid.get(bid.size() - 2).getPrice();
+        }
+        bidLock = false;
+        notify();
+        return 0;
+    }
+    public synchronized float getSecondLowestAsk() throws InterruptedException {
+        while (askLock) wait();
+        askLock = true;
+        Collections.sort(ask);
+        if (ask.size() > 1) {
+            askLock = false;
+            notify();
+            return ask.get(1).getPrice();
+        }
+        askLock = false;
+        notify();
+        return 99999;
+    }
     public synchronized Offer getHighestBidOffer() throws InterruptedException {
         while (bidLock) wait();
         bidLock = true;
@@ -186,7 +211,7 @@ public class Good implements Comparable{
         Collections.sort(bid);
         String str = "";
         if (bid.size() > 100) {
-            for (int i = 100; i >= 0; i--) {
+            for (int i = (bid.size() - 1); i >= (bid.size() - 101); i--) {
                 Offer offer = bid.get(i);
                 str += "[q: " + offer.getNumOffered() + " p: " + offer.getPrice() + "] ";
             }

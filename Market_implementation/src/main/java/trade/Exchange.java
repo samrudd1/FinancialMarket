@@ -27,6 +27,10 @@ public class Exchange {
     public static final String ANSI_RED = "\u001B[31m";
     public static final String ANSI_RESET = "\u001B[0m";
     public static float lastPrice;
+    @Getter private static float defaultCount = 0;
+    @Getter private static float sentCount = 0;
+    @Getter private static float momCount = 0;
+    @Getter private static float highCount = 0;
 
     public synchronized boolean execute(Agent buyer, Agent seller, Offer offer, int amountBought, TradingCycle tc) throws InterruptedException {
         complete = false;
@@ -124,6 +128,26 @@ public class Exchange {
                 }
                 */
 
+                switch (buyer.getChance()) {
+                    case 1:
+                        momCount += 1;
+                    case 2:
+                        sentCount += 1;
+                    case 3:
+                        highCount += 1;
+                    default:
+                        defaultCount += 1;
+                }
+                switch (seller.getChance()) {
+                    case 1:
+                        momCount += 1;
+                    case 2:
+                        sentCount += 1;
+                    case 3:
+                        highCount += 1;
+                    default:
+                        defaultCount += 1;
+                }
 
 
                 //buyer.saveUser(false);

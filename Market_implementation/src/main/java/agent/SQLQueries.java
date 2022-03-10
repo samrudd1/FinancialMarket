@@ -32,7 +32,20 @@ class SQLQueries {
      * @return the query needing to be used to perform insertion.
      */
     static String createInsertQuery(Agent agent){
-        String data = "'" + agent.getName() + "' , " + agent.getFunds() + " , " + agent.getFunds() + " , " + agent.getFunds() + " , " + 0 + " , " + 0;
+        //name,funds,value,startingValue,numShares,percent
+
+        float value;
+        float numShares = 0;
+        float percent = (((float)Math.round((agent.getFunds() / agent.getStartingFunds()) * 100000) / 1000) - 100);
+        if (agent.getGoodsOwned().size() > 0) {
+            value = ((agent.getFunds() + (agent.getGoodsOwned().get(0).getNumOwned() * Good.getPrice())));
+            numShares = agent.getGoodsOwned().get(0).getNumOwned();
+            percent = (((float)Math.round(((agent.getFunds() + (agent.getGoodsOwned().get(0).getNumOwned() * Good.getPrice())) / agent.getStartingFunds()) * 100000) / 1000) - 100);
+        } else {
+            value = agent.getFunds();
+        }
+
+        String data = "'" + agent.getName() + "' , " + agent.getFunds() + " , " + value + " , " + agent.getStartingFunds() + " , " + numShares + " , " + percent;
         return AGENT_INSERT.replace("@data",data);
     }
 
