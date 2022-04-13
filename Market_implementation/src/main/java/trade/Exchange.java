@@ -5,17 +5,16 @@ import agent.OwnedGood;
 import good.Good;
 import good.Offer;
 import lombok.Getter;
+import lombok.Setter;
 import utils.LineChartLive;
 
 import java.util.ArrayList;
 
 public class Exchange {
-    private static Exchange exchange = new Exchange();
+    private static final Exchange exchange = new Exchange();
     @Getter private ArrayList<Good> goods = new ArrayList<Good>();
     public Exchange() {}
-    public static Exchange getInstance() {
-        return exchange;
-    }
+    public static Exchange getInstance() { return exchange; }
     private static boolean exchangeLock = false;
     private boolean complete;
     public void addGood(Good good) {
@@ -31,8 +30,19 @@ public class Exchange {
     @Getter private static float sentCount = 0;
     @Getter private static float momCount = 0;
     @Getter private static float highCount = 0;
+    @Getter private static float rsiCount = 0;
+    @Getter private static float rsi10Count = 0;
+    @Getter private static int round = 0;
+    private static boolean newRound = false;
+    @Getter private static ArrayList<Float> roundFinalPrice = new ArrayList<>();
+    @Getter private static ArrayList<Float> rsiList = new ArrayList<>();
+    @Getter private static float rsi = 0;
+    @Getter private static ArrayList<Float> rsiPList = new ArrayList<>();
+    @Getter private static float rsiP = 0;
+    @Getter private static ArrayList<String> signalLog = new ArrayList<>();
+    @Getter @Setter private static boolean signalLogging;
 
-    public synchronized boolean execute(Agent buyer, Agent seller, Offer offer, int amountBought, TradingCycle tc) throws InterruptedException {
+    public synchronized boolean execute(Agent buyer, Agent seller, Offer offer, int amountBought, TradingCycle tc, int roundNum) throws InterruptedException {
         complete = false;
         if (buyer == seller) {
             return false;
@@ -43,7 +53,6 @@ public class Exchange {
             while (exchangeLock) wait();
             exchangeLock = true;
             //offer.getGood().setGoodLock(true);
-
             if (Good.getBid().contains(offer) || Good.getAsk().contains(offer)) {
                 if ((offer.getPrice() < (lastPrice * 1.01)) || (offer.getPrice() > (lastPrice * 0.99))) {
                     if (offer.getNumOffered() > 0) {
@@ -80,6 +89,11 @@ public class Exchange {
                         //Runnable chartUpdate = new Thread(TradingCycle.getLiveChart());
                         //chartUpdate.run();
                     }
+                    if (roundNum > round) {
+                        roundFinalPrice.add(lastPrice);
+                        newRound = true;
+                    }
+                    round = roundNum;
                     lastPrice = offer.getPrice();
                 }
                 //buyer.setAgentLock(false);
@@ -89,6 +103,10 @@ public class Exchange {
                 exchangeLock = false;
                 notifyAll();
                 tc.notifyAll();
+
+                Good.addTradeData(offer.getPrice(), amountBought, roundNum);
+                //Good.addTradeData(offer.getPrice(), amountBought, ((int)(Math.floor(roundNum * 0.01)+2)));
+                //Good.addTradeData(offer.getPrice(), amountBought, (int) Math.floor(Good.getNumTrades() * 0.01));
 
                 if (avg20.size() < 20) {
                     avg20.add(offer.getPrice());
@@ -103,6 +121,55 @@ public class Exchange {
                     }
                     avgResult = avgResult / total;
                     Good.getAvgPriceList().add(avgResult);
+                }
+
+                //RSI
+                if ((roundFinalPrice.size() > 15) && (newRound)) {
+                    float avgGain = 0;
+                    float avgLoss = 0;
+                    float diff;
+                    for (int i = (roundFinalPrice.size() - 1); i >= (roundFinalPrice.size() - 14); i--) {
+                        diff = (roundFinalPrice.get(i) / roundFinalPrice.get(i - 1)) - 1;
+                        if (diff > 0) {
+                            avgGain += diff;
+                        } else if (diff < 0) {
+                            avgLoss += (diff * -1);
+                        }
+                    }
+                    rsi = 100 - (100 / (1 + (avgGain / avgLoss)));
+                    rsiList.add(rsi);
+
+                    if (signalLogging) {
+                        if (rsi > 80) {
+                            signalLog.add(ANSI_RED + "Round " + roundNum + ": RSI Over-Bought: " + rsi + ", Sentiment: " + Agent.getSentiment() + ANSI_RESET);
+                        } else if (rsi < 20) {
+                            signalLog.add(ANSI_GREEN + "Round " + roundNum + ": RSI Over-Sold: " + rsi + ", Sentiment: " + Agent.getSentiment() + ANSI_RESET);
+                        }
+                    }
+
+                    if (roundFinalPrice.size() > 75) {
+                        avgGain = 0;
+                        avgLoss = 0;
+                        for (int i = (roundFinalPrice.size() - 1); i >= (roundFinalPrice.size() - 70); i-=5) {
+                            diff = (roundFinalPrice.get(i) / roundFinalPrice.get(i - 5)) - 1;
+                            if (diff > 0) {
+                                avgGain += diff;
+                            } else if (diff < 0) {
+                                avgLoss += (diff * -1);
+                            }
+                        }
+                        rsiP = 100 - (100 / (1 + (avgGain / avgLoss)));
+                        rsiPList.add(rsiP);
+
+                        if (signalLogging) {
+                            if (rsiP > 80) {
+                                signalLog.add(ANSI_RED + "Round " + roundNum + ": RSI 5 Over-Bought: " + rsiP + ", Sentiment: " + Agent.getSentiment() + ANSI_RESET);
+                            } else if (rsiP < 20) {
+                                signalLog.add(ANSI_GREEN + "Round " + roundNum + ": RSI 5 Over-Sold: " + rsiP + ", Sentiment: " + Agent.getSentiment() + ANSI_RESET);
+                            }
+                        }
+                    }
+                    newRound = false;
                 }
 
                 /*
@@ -128,27 +195,8 @@ public class Exchange {
                 }
                 */
 
-                switch (buyer.getChance()) {
-                    case 1:
-                        momCount += 1;
-                    case 2:
-                        sentCount += 1;
-                    case 3:
-                        highCount += 1;
-                    default:
-                        defaultCount += 1;
-                }
-                switch (seller.getChance()) {
-                    case 1:
-                        momCount += 1;
-                    case 2:
-                        sentCount += 1;
-                    case 3:
-                        highCount += 1;
-                    default:
-                        defaultCount += 1;
-                }
-
+                tradeTally(buyer.getChance());
+                tradeTally(seller.getChance());
 
                 //buyer.saveUser(false);
                 //seller.saveUser(false);
@@ -167,5 +215,27 @@ public class Exchange {
             //lc.run();
         //}
         return complete;
+    }
+
+    public static void addLog(String log) { signalLog.add(log); }
+    public static void printLog() {
+        for (int i = 0; i < signalLog.size() - 1; i++) {
+            System.out.println(signalLog.get(i));
+        }
+    }
+    private void tradeTally(int chance) {
+        if (chance == 1) {
+            momCount += 1;
+        } else if (chance == 2) {
+            sentCount += 1;
+        } else if (chance == 3) {
+            highCount += 1;
+        } else if (chance == 4) {
+            rsiCount += 1;
+        } else if (chance == 5) {
+            rsi10Count += 1;
+        } else {
+            defaultCount += 1;
+        }
     }
 }

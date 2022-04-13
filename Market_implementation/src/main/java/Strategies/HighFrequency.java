@@ -14,7 +14,7 @@ public class HighFrequency extends AbstractStrategy implements Runnable {
     int finalRound;
 
     public HighFrequency(Agent agent, TradingCycle tc, int roundNum, int finalRound) {
-        super(agent, tc);
+        super(agent, tc, roundNum);
         this.agent = agent;
         this.tc = tc;
         HighFrequency.roundNum = roundNum;
@@ -40,15 +40,14 @@ public class HighFrequency extends AbstractStrategy implements Runnable {
                         if ((agent.getFunds() * 0.5) > (offer.getPrice() * offer.getNumOffered())) {
                             if (!(offer.getOfferMaker().getName().equalsIgnoreCase(agent.getName()))) {
                                 if (offer.getNumOffered() > 2) {
-                                    boolean success = Exchange.getInstance().execute(agent, offer.getOfferMaker(), offer, offer.getNumOffered(), tc);
+                                    boolean success = Exchange.getInstance().execute(agent, offer.getOfferMaker(), offer, offer.getNumOffered(), tc, roundNum);
                                     if (!success) {
                                         System.out.println("trade execution failed");
                                     } else {
                                         int numShares = offer.getNumOffered();
-                                        int firstOffer = (int) Math.floor(numShares * 0.5);
-                                        numShares -= firstOffer;
+                                        //int firstOffer = (int) Math.floor(numShares * 0.5);
                                         try {
-                                            createAsk((float) (secondLowestAsk - 0.01), agent.getGoodsOwned().get(0), (firstOffer * 2));
+                                            createAsk((float) (secondLowestAsk - 0.01), agent.getGoodsOwned().get(0), numShares);
                                         } catch (InterruptedException e) {
                                             System.out.println("creating ask threw an error");
                                         }
@@ -73,7 +72,7 @@ public class HighFrequency extends AbstractStrategy implements Runnable {
                         Offer offer = good.getHighestBidOffer();
                         if (agent.getGoodsOwned().get(0).getNumOwned() > (offer.getPrice() * offer.getNumOffered())) {
                             if (!(offer.getOfferMaker().getName().equalsIgnoreCase(agent.getName()))) {
-                                boolean success = Exchange.getInstance().execute(offer.getOfferMaker(), agent, offer, offer.getNumOffered(), tc);
+                                boolean success = Exchange.getInstance().execute(offer.getOfferMaker(), agent, offer, offer.getNumOffered(), tc, roundNum);
                                 if (!success) {
                                     System.out.println("trade execution failed");
                                 } else {

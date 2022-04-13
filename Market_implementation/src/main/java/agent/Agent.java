@@ -26,29 +26,28 @@ import java.util.logging.Logger;
 public class Agent {
     private static final Logger LOGGER = Logger.getLogger(Agent.class.getName());
     private int MIN_STARTING_FUNDS = 1000;
-    private int MAX_STARTING_FUNDS = 1000000;
+    private final int MAX_STARTING_FUNDS = 1000000;
     private static final String AGENT_DATABASE = PropertiesLabels.getMarketDatabase();
 
-    private static Random rand = new Random();
     @Getter private ArrayList<String> namesOwned = new ArrayList<>();
     @Getter @Setter private int id;
     @Getter @Setter private String name;
     private float funds;
-    @Getter private float startingFunds;
+    @Getter private final float startingFunds;
     @Getter @Setter private float targetPrice;
     private boolean agentLock;
     private ArrayList<OwnedGood> goodsOwned = new ArrayList<>();
     @Getter private Map<Integer,Float> fundData = new HashMap<Integer,Float>();
-    @Getter private int startingRound;
-    @Getter private boolean placedBid;
-    @Getter private boolean placedAsk;
+    @Getter private final int startingRound;
+    private boolean placedBid;
+    private boolean placedAsk;
     @Getter private ArrayList<Offer> bidsPlaced = new ArrayList<>();
     @Getter private ArrayList<Offer> asksPlaced = new ArrayList<>();
     @Getter @Setter private static int sentiment;
     @Getter @Setter int chance;
     @Getter @Setter private int prevSentiment = 30;
     @Getter @Setter private float prevRoundPrice = Good.getPrice();
-    @Getter @Setter private boolean prevPriceUp;
+    @Setter private boolean prevPriceUp;
     @Getter @Setter public static int ID;
 
     //@Getter @Setter private Offer bidMade;
@@ -58,7 +57,7 @@ public class Agent {
     public Agent(){
         setAgentLock(false);
         Random rand = new Random();
-        chance = rand.nextInt(4);
+        chance = rand.nextInt(6);
         id = ID;
         ID += 1;//Make sure nextId is handled okay with concurrency
         if (chance == 1) {
@@ -67,7 +66,11 @@ public class Agent {
             name = "SentTrend " + id;
         } else if (chance == 3) {
             name = "High Frequency " + id;
-            MIN_STARTING_FUNDS *= 10;
+            //MIN_STARTING_FUNDS *= 10;
+        } else if (chance == 4) {
+            name = "RSI " + id;
+        } else if (chance == 5) {
+            name = "RSI10 " + id;
         } else {
             name = "Default " + id;
         }
@@ -112,7 +115,7 @@ public class Agent {
         setPlacedBid(false);
         setPlacedAsk(false);
         Random rand = new Random();
-        chance = rand.nextInt(4);
+        chance = rand.nextInt(6);
         this.id = id; //Make sure nextId is handled okay with concurrency
         this.name = name;
         this.funds = funds;
@@ -153,6 +156,7 @@ public class Agent {
      * @return a float between the minimum and maximum starting funds number
      */
     private float assignFunds(){
+        Random rand = new Random();
         int fundsInt = rand.nextInt((MAX_STARTING_FUNDS - MIN_STARTING_FUNDS) + 1 ) + MIN_STARTING_FUNDS;
         return (float) fundsInt;
     }
@@ -243,10 +247,10 @@ public class Agent {
 
 
     private class InitiateBuy implements Runnable {
-        @Getter private Agent buyer;
-        @Getter private Offer offer;
-        @Getter private int amountBought;
-        private TradingCycle tc;
+        @Getter private final Agent buyer;
+        @Getter private final Offer offer;
+        @Getter private final int amountBought;
+        private final TradingCycle tc;
 
         public InitiateBuy(Agent buyer, Offer offer, int amountBought, TradingCycle tc) {
             this.buyer = buyer;
@@ -259,7 +263,7 @@ public class Agent {
         public synchronized void run() {
             synchronized (tc) {
                 try {
-                    Exchange.getInstance().execute(buyer, offer.getOfferMaker(), offer, amountBought, tc);
+                    Exchange.getInstance().execute(buyer, offer.getOfferMaker(), offer, amountBought, tc, 0);
                 } catch (InterruptedException e) {
                     LOGGER.info("trade failed");
                 }

@@ -9,10 +9,12 @@ import trade.TradingCycle;
 public abstract class AbstractStrategy {
     Agent agent;
     TradingCycle tc;
+    int roundNum;
 
-    public AbstractStrategy(Agent agent, TradingCycle tc) {
+    public AbstractStrategy(Agent agent, TradingCycle tc, int roundNum) {
         this.agent = agent;
         this.tc = tc;
+        this.roundNum = roundNum;
     }
 
     void createBid(float price, Good good, int numOffered) throws InterruptedException {

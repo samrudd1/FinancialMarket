@@ -1,0 +1,16 @@
+/*C1*/SET SCHEMA SYSTEM_LOBS
+INSERT INTO BLOCKS VALUES(0,2147483647,0)
+COMMIT
+/*C2*/SET SCHEMA PUBLIC
+DISCONNECT
+/*C3*/SET SCHEMA PUBLIC
+set schema PUBLIC
+create table good\u000a(\u000a    id              int\u000a        constraint GOOD_PK\u000a            primary key,\u000a    name            CHAR(30),\u000a    price           float,\u000a    "prevPrice"     float,\u000a    "startingPrice" float,\u000a    "sharesOffered" int,\u000a    "amountSold"    int,\u000a    "fundsRaised"   float\u000a)
+/*C4*/SET SCHEMA PUBLIC
+DISCONNECT
+/*C3*/create table agent\u000a(\u000a    id              int\u000a        constraint AGENT_PK\u000a            primary key,\u000a    name            VARCHAR(50),\u000a    funds           float,\u000a    "startingFunds" float,\u000a    "numShares"     int,\u000a    percent         float\u000a)
+/*C5*/SET SCHEMA PUBLIC
+DISCONNECT
+/*C3*/alter table GOOD\u000a    alter column NAME set data type VARCHAR(50)
+/*C6*/SET SCHEMA PUBLIC
+DISCONNECT

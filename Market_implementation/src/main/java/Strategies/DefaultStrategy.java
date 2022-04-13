@@ -11,11 +11,13 @@ import trade.TradingCycle;
 public class DefaultStrategy extends AbstractStrategy implements Runnable {
     Agent agent;
     TradingCycle tc;
+    int roundNum;
 
-    public DefaultStrategy(Agent agent, TradingCycle tc) {
-        super(agent, tc);
+    public DefaultStrategy(Agent agent, TradingCycle tc, int roundNum) {
+        super(agent, tc, roundNum);
         this.agent = agent;
         this.tc = tc;
+        this.roundNum = roundNum;
     }
 
     @SneakyThrows
@@ -32,6 +34,8 @@ public class DefaultStrategy extends AbstractStrategy implements Runnable {
         if (random > 0.9) {
             agent.changeTargetPrice();
         }
+        agent.setPlacedBid(false);
+        agent.setPlacedAsk(false);
 
         while(agent.getAgentLock()) wait();
         agent.setAgentLock(true);
@@ -50,7 +54,7 @@ public class DefaultStrategy extends AbstractStrategy implements Runnable {
                         } catch (InterruptedException e) {
                             System.out.println("creating ask threw an error");
                         }
-                        agent.setPlacedAsk(true);
+                        //agent.setPlacedAsk(true); //not needed anymore, and bid and ask could do with being more filled for tighter spread
                     }
                 }
             }
@@ -69,7 +73,7 @@ public class DefaultStrategy extends AbstractStrategy implements Runnable {
                         } catch (InterruptedException e) {
                             System.out.println("Creating bid threw an error");
                         }
-                        agent.setPlacedBid(true);
+                        //agent.setPlacedBid(true);
                     }
                 }
             }
@@ -86,7 +90,7 @@ public class DefaultStrategy extends AbstractStrategy implements Runnable {
                         }
                         if (offer.getPrice() > (Exchange.lastPrice * 0.999)) {
                             if (offering > 0) {
-                                boolean success = Exchange.getInstance().execute(offer.getOfferMaker(), agent, offer, offering, tc);
+                                boolean success = Exchange.getInstance().execute(offer.getOfferMaker(), agent, offer, offering, tc, roundNum);
                                 if (!success) {
                                     System.out.println("trade execution failed");
                                 }
@@ -108,7 +112,7 @@ public class DefaultStrategy extends AbstractStrategy implements Runnable {
                         }
                         if (offer.getPrice() < (Exchange.lastPrice * 1.001)) {
                             if ((wantToBuy > 0) && (agent.getId() != offer.getOfferMaker().getId())) {
-                                boolean success = Exchange.getInstance().execute(agent, offer.getOfferMaker(), offer, wantToBuy, tc);
+                                boolean success = Exchange.getInstance().execute(agent, offer.getOfferMaker(), offer, wantToBuy, tc, roundNum);
                                 if (!success) {
                                     System.out.println("trade execution failed");
                                 }

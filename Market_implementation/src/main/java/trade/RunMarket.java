@@ -35,10 +35,12 @@ public class RunMarket {
         Good.setOutstandingShares(startingGoodNo);
         Good.setDirectlyAvailable(startingGoodNo);
         Session.openSession();
-        Agent.setSentiment(18);
+
+        Agent.setSentiment(20);
         Agent.ID = 1;
-        //Agent.setSentiment(9);
-        //log.info("Stock starting price: " + Good.getStartingPrice());
+        Exchange.setSignalLogging(false);
+        TradingCycle.setSignalLogging(false);
+
         new Good(true);
         for(int i = 0; i<startingAgentNo; i++){
             new Agent();

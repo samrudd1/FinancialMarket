@@ -8,6 +8,7 @@ import lombok.Setter;
 import lombok.extern.java.Log;
 import session.Session;
 import trade.Exchange;
+import trade.TradeData;
 import utils.PropertiesLabels;
 import utils.SQLConnector;
 
@@ -46,6 +47,7 @@ public class Good implements Comparable{
     @Getter private static Map<Integer,Float> priceData = new HashMap<>();
     @Getter private static ArrayList<Float> priceList = new ArrayList<>();
     @Getter private static ArrayList<Float> avgPriceList = new ArrayList<>();
+    @Getter private static ArrayList<TradeData> tradeData = new ArrayList<>();
 
     /*
     public Good(){
@@ -179,7 +181,7 @@ public class Good implements Comparable{
     public synchronized Offer getHighestBidOffer() throws InterruptedException {
         while (bidLock) wait();
         bidLock = true;
-        bid.trimToSize();
+        //bid.trimToSize();
         Collections.sort(bid);
         if (bid.size() > 0) {
             bidLock = false;
@@ -193,7 +195,7 @@ public class Good implements Comparable{
     public synchronized Offer getLowestAskOffer() throws InterruptedException {
         while (askLock) wait();
         askLock = true;
-        ask.trimToSize();
+        //ask.trimToSize();
         Collections.sort(ask);
         if (ask.size() > 0) {
             askLock = false;
@@ -251,7 +253,7 @@ public class Good implements Comparable{
         if (offer.getPrice() > 0) {
             bid.add(offer);
             //log.info("new bid of " + offer.getNumOffered() + " shares at " + offer.getPrice());
-            bid.trimToSize();
+            //bid.trimToSize();
         }
         Collections.sort(bid);
         bidLock = false;
@@ -263,7 +265,7 @@ public class Good implements Comparable{
         if (offer.getPrice() > 0) {
             ask.add(offer);
             //log.info("new ask of " + offer.getNumOffered() + " shares at " + offer.getPrice());
-            ask.trimToSize();
+            //ask.trimToSize();
         }
         Collections.sort(ask);
         askLock = false;
@@ -275,7 +277,7 @@ public class Good implements Comparable{
         if (bid.contains(offer)) {
             bid.remove(offer);
             offer.getOfferMaker().removedBid(offer);
-            bid.trimToSize();
+            //bid.trimToSize();
         }
         Collections.sort(bid);
         bidLock = false;
@@ -287,11 +289,15 @@ public class Good implements Comparable{
         if (ask.contains(offer)) {
             ask.remove(offer);
             offer.getOfferMaker().removeAsk(offer);
-            ask.trimToSize();
+            //ask.trimToSize();
         }
         Collections.sort(ask);
         askLock = false;
         notify();
+    }
+
+    public static void addTradeData(float price, int amount, int round) {
+        tradeData.add(new TradeData(price, amount, round));
     }
 
     /**

@@ -19,7 +19,7 @@ public class LineChartLive extends JFrame implements Runnable {
     float highest;
     float dataLow;
     float dataHigh;
-    final int CHARTSIZE = 1000;
+    final int CHARTSIZE = 2000;
     public LineChartLive() {
         initUI(Good.getPriceList());
     }

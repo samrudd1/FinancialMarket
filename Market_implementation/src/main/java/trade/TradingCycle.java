@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.java.Log;
 import session.Session;
+import utils.CandleStickChart;
 import utils.LineChartMake;
 
 import java.util.ArrayList;
@@ -15,19 +16,14 @@ import java.util.Random;
 
 @Log
 public class TradingCycle {
-    private static final double SELLING_THRESHOLD = 0.9;
-    private static final float INCREASE_MULTIPLIER = 1.01f;
-    private static final float DECREASE_MULTIPLIER = 0.99f;
     @Getter private int numOfRounds;
-    @Getter @Setter public static boolean roundComplete;
     @Getter @Setter public static boolean agentComplete;
+    @Getter @Setter private static boolean signalLogging;
 
     public void startTrading(int numOfRounds) throws Exception {
         this.numOfRounds = numOfRounds;
         Session.setNumOfRounds(Session.getNumOfRounds()+1);
-        roundComplete = false;
         agentComplete = false;
-        //ArrayList<OwnedGood> ownedGoodsForSale = getAgentOwnedGoods();
         synchronized (this) {
             initialOffering();
             Good.getPriceList().clear();
@@ -38,35 +34,43 @@ public class TradingCycle {
 
             Offer inOffer = Good.getAsk().get(0);
             inOffer.setPrice((float) (inOffer.getPrice() * 1.05));
+            System.out.println("Initial offering complete...");
+            System.out.println("Starting trading between agents...");
+            System.out.println();
 
-            for (int i = 0; i < (numOfRounds - 1); i++) {
+            for (int i = 0; i < numOfRounds; i++) {
                 createTrades(i);
             }
         }
 
         System.out.println();
         System.out.println("Market funds raised: " + Good.getCompany().getFunds());
-        System.out.println("starting price: " + Good.getStartingPrice());
-        System.out.println("lowest: " + Good.getLowest());
-        System.out.println("highest: " + Good.getHighest());
-        System.out.println("average price per share: " + Good.getVwap());
-        System.out.println("total shares traded: " + Good.getVolume());
+        System.out.println("Starting price: " + Good.getStartingPrice());
+        System.out.println("Lowest price: " + Good.getLowest());
+        System.out.println("Highest price: " + Good.getHighest());
+        System.out.println("Average price per share: " + Good.getVwap());
+        System.out.println("Total shares traded: " + Good.getVolume());
 
         Exchange.getInstance().getGoods().get(0).saveGood(false);
         analyzeStrategies();
         System.out.println("Saving...");
+        if (signalLogging) {
+            System.out.println();
+            Exchange.printLog();
+            System.out.println();
+        }
         makeChart();
+        //System.exit(0);
         for (Agent agent : Session.getAgents().values()) {
             agent.saveUser(true);
         }
-        System.out.println("Finished");
+        System.out.println("Finished.");
     }
 
     private synchronized void initialOffering() throws InterruptedException {
         //This could be used as opening bell type auction, or IPO
         Offer IPO = Good.getAsk().get(0);
         agentComplete = true;
-        roundComplete = false;
         log.info("There are " + IPO.getNumOffered() + " direct goods for sale at " + IPO.getPrice());
         int startingOffer = Good.getOutstandingShares();
         synchronized (this) {
@@ -91,155 +95,172 @@ public class TradingCycle {
                 }
                 notifyAll();
             }
-            roundComplete = true;
             notifyAll();
         }
     }
 
     private void createTrades(int roundNum) throws InterruptedException {
         //for (Good good : Exchange.getInstance().getGoods()) {
-        roundComplete = false;
             for (Agent agent : Session.getAgents().values()) {
                 if (agent.getId() != 1) {
+
+                    /*
+                    switch(agent.getChance()) {
+                        case 1:
+                            if (roundNum > 10) {
+                                MomentumSwing ms = new MomentumSwing(agent, this, roundNum);
+                                Runnable mt = new Thread(ms);
+                                mt.run();
+                            }
+                        case 2:
+                            if (roundNum > 10) {
+                                SentimentTrend st = new SentimentTrend(agent, this, roundNum);
+                                Runnable tt = new Thread(st);
+                                tt.run();
+                            }
+                        case 3:
+                            if (roundNum > 16) {
+                                RSI rs = new RSI(agent, this, roundNum);
+                                Runnable rt = new Thread(rs);
+                                rt.run();
+                                if (roundNum > 160) {
+                                    RSI10 rp = new RSI10(agent, this, roundNum);
+                                    rt = new Thread(rp);
+                                    rt.run();
+                                }
+                            }
+                        case 4:
+                            if (roundNum > 16) {
+                                RSI rs = new RSI(agent, this, roundNum);
+                                Runnable rt = new Thread(rs);
+                                rt.run();
+                            }
+                        case 5:
+                            if (roundNum > 160) {
+                                RSI10 rp = new RSI10(agent, this, roundNum);
+                                Runnable pr = new Thread(rp);
+                                pr.run();
+                            }
+                        default:
+                            DefaultStrategy co = new DefaultStrategy(agent, this, roundNum);
+                            Runnable ts = new Thread(co);
+                            ts.run();
+                    }
+                    */
+
                     if (agent.getChance() == 1) {
                         if (roundNum > 10) {
-                            MomentumSwing ms = new MomentumSwing(agent, this);
+                            MomentumSwing ms = new MomentumSwing(agent, this, roundNum);
                             Runnable mt = new Thread(ms);
                             mt.run();
                         }
                     } else if (agent.getChance() == 2) {
                         if (roundNum > 10) {
-                            SentimentTrend st = new SentimentTrend(agent, this);
+                            SentimentTrend st = new SentimentTrend(agent, this, roundNum);
                             Runnable tt = new Thread(st);
                             tt.run();
                         }
                     } else if (agent.getChance() == 3) {
-                        if ((roundNum % 10) == 1) {
+                        if (roundNum > 16) {
+                            RSI rs = new RSI(agent, this, roundNum);
+                            Runnable rt = new Thread(rs);
+                            rt.run();
+                            if (roundNum > 160) {
+                                RSI10 rp = new RSI10(agent, this, roundNum);
+                                rt = new Thread(rp);
+                                rt.run();
+                            }
+                        }
+                    } else if (agent.getChance() == 4) {
+                        if (roundNum > 16) {
+                            RSI rs = new RSI(agent, this, roundNum);
+                            Runnable sr = new Thread(rs);
+                            sr.run();
+                        }
+                    } else if (agent.getChance() == 5) {
+                        if (roundNum > 160) {
+                            RSI10 rp = new RSI10(agent, this, roundNum);
+                            Runnable pr = new Thread(rp);
+                            pr.run();
+                        }
+                        /*
+                    } else if (agent.getChance() == 3) {
+                        //if ((roundNum % 10) == 1) {
                             HighFrequency hf = new HighFrequency(agent, this, roundNum, numOfRounds);
                             Runnable ht = new Thread(hf);
                             ht.run();
-                        }
+                        //}
+                        */
                     } else {
-                        DefaultStrategy co = new DefaultStrategy(agent, this);
+                        DefaultStrategy co = new DefaultStrategy(agent, this, roundNum);
                         Runnable ts = new Thread(co);
                         ts.run();
                     }
-                } else { agentComplete = true; }
+
+                }// else { agentComplete = true; }
             }
-            mut();
+            mut(roundNum);
             System.out.println();
-            System.out.println("End of round " + (roundNum + 1) + " of " + numOfRounds);
-            System.out.println("bid: " + Exchange.getInstance().getGoods().get(0).bidString());
-            System.out.println("ask: " + Exchange.getInstance().getGoods().get(0).askString());
+            System.out.println("Round " + (roundNum + 1) + " of " + numOfRounds);
+            System.out.println("Bid: " + Exchange.getInstance().getGoods().get(0).bidString());
+            System.out.println("Ask: " + Exchange.getInstance().getGoods().get(0).askString());
             if (Good.getBid().size() > 0) {
-                System.out.println("highest bid: " + Exchange.getInstance().getGoods().get(0).getHighestBid());
+                System.out.println("Highest bid: " + Exchange.getInstance().getGoods().get(0).getHighestBid());
             }
             if (Good.getAsk().size() > 1) {
-                System.out.println("lowest ask: " + Exchange.getInstance().getGoods().get(0).getLowestAsk());
+                System.out.println("Lowest ask: " + Exchange.getInstance().getGoods().get(0).getLowestAsk());
             }
-            System.out.println("trades so far: " + (Good.getNumTrades()));
-            System.out.println("total volume: " + (int)Good.getVolume());
+            System.out.println("Trades so far: " + (Good.getNumTrades()));
+            System.out.println("Total shares traded: " + (int)Good.getVolume());
+            ///*
+            if (Exchange.getRsi() > 0) {
+                System.out.println("RSI  : " + Exchange.getRsi());
+            }
+            if (Exchange.getRsiP() > 0) {
+                System.out.println("RSI 5: " + Exchange.getRsiP());
+            }
+             //*/
         //}
     }
 
     private void analyzeStrategies() {
-        float defaultTotalNum = 0;
-        float defaultAvgValue = 0;
-        float defaultPercent = 0;
-        float defaultStart = 0;
-        float sentTotalNum = 0;
-        float sentAvgValue = 0;
-        float sentPercent = 0;
-        float sentStart = 0;
-        float momTotalNum = 0;
-        float momAvgValue = 0;
-        float momPercent = 0;
-        float momStart = 0;
-        float highTotalNum = 0;
-        float highAvgValue = 0;
-        float highPercent = 0;
-        float highStart = 0;
+        analysis("default", 0, Exchange.getDefaultCount());
+        analysis("momentum", 1, Exchange.getMomCount());
+        analysis("sentiment", 2, Exchange.getSentCount());
+        //analysis("high frequency", 3, Exchange.getHighCount());
+        analysis("Both RSI", 3, Exchange.getHighCount());
+        analysis("RSI", 4, Exchange.getRsiCount());
+        analysis("RSI 5", 5, Exchange.getRsi10Count());
+        System.out.println();
+    }
+    private void analysis(String name, int id, float count) {
+        float TotalNum = 0;
+        float AvgValue = 0;
+        float Percent;
+        float Start = 0;
         for (Agent agent : Session.getAgents().values()) {
-            if (agent.getChance() == 1) {
-                momAvgValue *= momTotalNum;
+            if (agent.getChance() == id) {
+                AvgValue *= TotalNum;
                 float value = agent.getFunds();
                 if (agent.getGoodsOwned().size() > 0) {
                     value += (agent.getGoodsOwned().get(0).getNumOwned() * Exchange.lastPrice);
                 }
-                momStart *= momTotalNum;
-                momStart += agent.getStartingFunds();
-                momAvgValue += value;
-                momTotalNum += 1;
-                momStart = momStart / momTotalNum;
-                momAvgValue = momAvgValue / momTotalNum;
-            } else if (agent.getChance() == 2) {
-                sentAvgValue *= sentTotalNum;
-                float value = agent.getFunds();
-                if (agent.getGoodsOwned().size() > 0) {
-                    value += (agent.getGoodsOwned().get(0).getNumOwned() * Exchange.lastPrice);
-                }
-                sentStart *= sentTotalNum;
-                sentStart += agent.getStartingFunds();
-                sentAvgValue += value;
-                sentTotalNum += 1;
-                sentStart = sentStart / sentTotalNum;
-                sentAvgValue = sentAvgValue / sentTotalNum;
-            } else if (agent.getChance() == 3) {
-                highAvgValue *= highTotalNum;
-                float value = agent.getFunds();
-                if (agent.getGoodsOwned().size() > 0) {
-                    value += (agent.getGoodsOwned().get(0).getNumOwned() * Exchange.lastPrice);
-                }
-                highStart *= highTotalNum;
-                highStart += agent.getStartingFunds();
-                highAvgValue += value;
-                highTotalNum += 1;
-                highStart = highStart / highTotalNum;
-                highAvgValue = highAvgValue / highTotalNum;
-            } else {
-                defaultAvgValue *= defaultTotalNum;
-                float value = agent.getFunds();
-                if (agent.getGoodsOwned().size() > 0) {
-                    value += (agent.getGoodsOwned().get(0).getNumOwned() * Exchange.lastPrice);
-                }
-                defaultStart *= defaultTotalNum;
-                defaultStart += agent.getStartingFunds();
-                defaultAvgValue += value;
-                defaultTotalNum += 1;
-                defaultStart = defaultStart / defaultTotalNum;
-                defaultAvgValue = defaultAvgValue / defaultTotalNum;
+                Start *= TotalNum;
+                Start += agent.getStartingFunds();
+                AvgValue += value;
+                TotalNum += 1;
+                Start = Start / TotalNum;
+                AvgValue = AvgValue / TotalNum;
             }
         }
-        sentPercent = sentAvgValue / sentStart;
-        sentPercent *= 100;
-        sentPercent -= 100;
-        momPercent = momAvgValue / momStart;
-        momPercent *= 100;
-        momPercent -= 100;
-        defaultPercent = defaultAvgValue / defaultStart;
-        defaultPercent *= 100;
-        defaultPercent -= 100;
-        highPercent = highAvgValue / highStart;
-        highPercent *= 100;
-        highPercent -= 100;
+        Percent = AvgValue / Start;
+        Percent *= 100;
+        Percent -= 100;
         System.out.println();
-        System.out.println("Total number agents with default strategy: " + defaultTotalNum);
-        //System.out.println("Average default strategy value: " + defaultAvgValue);
-        System.out.println("Average percentage change for default strategy: " + defaultPercent + "%");
-        System.out.println("Total trades by agents with default strategy: " + Exchange.getDefaultCount());
-        System.out.println("Total number agents with sentiment strategy: " + sentTotalNum);
-        //System.out.println("Average sentiment strategy value: " + sentAvgValue);
-        System.out.println("Average percentage change for sentiment strategy: " + sentPercent + "%");
-        System.out.println("Total trades by agents with sentiment strategy: " + Exchange.getSentCount());
-        System.out.println("Total number agents with momentum strategy: " + momTotalNum);
-        //System.out.println("Average momentum strategy value: " + momAvgValue);
-        System.out.println("Average percentage change for momentum strategy: " + momPercent + "%");
-        System.out.println("Total trades by agents with momentum strategy: " + Exchange.getMomCount());
-        System.out.println("Total number agents with high frequency strategy: " + highTotalNum);
-        //System.out.println("Average high frequency strategy value: " + momAvgValue);
-        System.out.println("Average percentage change for high frequency strategy: " + highPercent + "%");
-        System.out.println("Total trades by agents with high frequency strategy: " + Exchange.getHighCount());
-        System.out.println();
+        System.out.println("Total number agents with " + name + " strategy: " + TotalNum);
+        //System.out.println("Average " + name + " strategy value: " + defaultAvgValue);
+        System.out.println("Average percentage change for " + name + " strategy: " + Percent + "%");
+        System.out.println("Total trades by agents with " + name + " strategy: " + count);
     }
 
     private void makeChart() {
@@ -265,25 +286,31 @@ public class TradingCycle {
         }
         LineChartMake lc = new LineChartMake(avg10, lowest, highest);
         lc.setVisible(true);
+        LineChartMake rs = new LineChartMake(Exchange.getRsiList(), "RSI");
+        rs.setVisible(true);
+        LineChartMake rp = new LineChartMake(Exchange.getRsiPList(), "RSI 5");
+        rp.setVisible(true);
+        CandleStickChart cs = new CandleStickChart("Candle Stick Chart", Good.getTradeData());
+        cs.setVisible(true);
     }
 
-    private void mut() {
+    private void mut(int roundNum) {
         Random rand = new Random();
         int chance = rand.nextInt(1000);
         if (chance > 900) {
             Agent.setSentiment(17);
         }
         if (chance > 950) {
-            Agent.setSentiment(15);
+            Agent.setSentiment(16);
         }
         if (chance > 995) {
-            Agent.setSentiment(14);
-            //for (Agent agent : Session.getAgents().values()) {
-                //if (agent.getId() != 1) {
-                //    agent.changeTargetPrice();
-                //}
-            //}
-            //Agent.setSentiment(18);
+            Agent.setSentiment(13);
+            if (signalLogging) {
+                String ANSI_GREEN = "\u001B[32m";
+                String ANSI_RED = "\u001B[31m";
+                String ANSI_RESET = "\u001B[0m";
+                Exchange.addLog(ANSI_RED + "Round " + roundNum + ": Strong Negative Sentiment." + ANSI_RESET);
+            }
         }
         if (chance < 100) {
             Agent.setSentiment(22);
@@ -292,21 +319,14 @@ public class TradingCycle {
             Agent.setSentiment(23);
         }
         if (chance < 5) {
-            Agent.setSentiment(24);
-            //for (Agent agent : Session.getAgents().values()) {
-            //    if (agent.getId() != 1) {
-            //        agent.changeTargetPrice();
-            //        //agent.changeTargetPrice();
-            //    }
-            //}
+            Agent.setSentiment(25);
+            if (signalLogging) {
+                String ANSI_GREEN = "\u001B[32m";
+                String ANSI_RED = "\u001B[31m";
+                String ANSI_RESET = "\u001B[0m";
+                Exchange.addLog(ANSI_GREEN + "Round " + roundNum + ": Strong Positive Sentiment." + ANSI_RESET);
+            }
         }
-        /*
-        if (chance == 400) {
-            Runnable mu = new Thread(new ResetVol());
-            mu.run();
-            Agent.setSentiment(20);
-        }
-        */
         if ((chance > 400) && (chance < 450)) {
             Agent.setSentiment(18);
         }
@@ -323,21 +343,6 @@ public class TradingCycle {
             log.info("Adding new Agent to market.");
             new Agent();
             Session.setNumAgents(Session.getNumAgents() + 1);
-        }
-    }
-
-    //adds randomness to market, from original version
-    private class ResetVol implements Runnable {
-        public ResetVol() {}
-        @Override
-        public void run() {
-            for (Agent agent : Session.getAgents().values()) {
-                if (agent.getId() != 1) {
-                    agent.createTargetPrice();
-                }
-                agent.setPlacedAsk(false);
-                agent.setPlacedBid(false);
-            }
         }
     }
 }

@@ -11,11 +11,13 @@ import trade.TradingCycle;
 public class SentimentSwing extends AbstractStrategy implements Runnable {
     Agent agent;
     TradingCycle tc;
+    int roundNum;
 
-    public SentimentSwing(Agent agent, TradingCycle tc) {
-        super(agent, tc);
+    public SentimentSwing(Agent agent, TradingCycle tc, int roundNum) {
+        super(agent, tc, roundNum);
         this.agent = agent;
         this.tc = tc;
+        this.roundNum = roundNum;
     }
 
     @SneakyThrows
@@ -53,7 +55,7 @@ public class SentimentSwing extends AbstractStrategy implements Runnable {
                                 }
                                 if (offer.getPrice() < (Exchange.lastPrice * 1.001)) {
                                     if ((wantToBuy > 0) && (agent.getId() != offer.getOfferMaker().getId())) {
-                                        boolean success = Exchange.getInstance().execute(agent, offer.getOfferMaker(), offer, wantToBuy, tc);
+                                        boolean success = Exchange.getInstance().execute(agent, offer.getOfferMaker(), offer, wantToBuy, tc, roundNum);
                                         if (!success) {
                                             System.out.println("trade execution failed");
                                         }
@@ -98,7 +100,7 @@ public class SentimentSwing extends AbstractStrategy implements Runnable {
                                 }
                                 if (offer.getPrice() > (Exchange.lastPrice * 0.999)) {
                                     if (offering > 0) {
-                                        boolean success = Exchange.getInstance().execute(offer.getOfferMaker(), agent, offer, offering, tc);
+                                        boolean success = Exchange.getInstance().execute(offer.getOfferMaker(), agent, offer, offering, tc, roundNum);
                                         if (!success) {
                                             System.out.println("trade execution failed");
                                         }
