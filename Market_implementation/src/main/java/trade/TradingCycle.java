@@ -34,9 +34,11 @@ public class TradingCycle {
 
             Offer inOffer = Good.getAsk().get(0);
             inOffer.setPrice((float) (inOffer.getPrice() * 1.05));
+            System.out.println();
             System.out.println("Initial offering complete...");
             System.out.println("Starting trading between agents...");
             System.out.println();
+            Thread.sleep(1000);
 
             for (int i = 0; i < numOfRounds; i++) {
                 createTrades(i);
@@ -60,7 +62,6 @@ public class TradingCycle {
             System.out.println();
         }
         makeChart();
-        //System.exit(0);
         for (Agent agent : Session.getAgents().values()) {
             agent.saveUser(true);
         }
@@ -73,13 +74,13 @@ public class TradingCycle {
         agentComplete = true;
         log.info("There are " + IPO.getNumOffered() + " direct goods for sale at " + IPO.getPrice());
         int startingOffer = Good.getOutstandingShares();
-        synchronized (this) {
+        //synchronized (this) {
             //for (Good good : Exchange.getInstance().getGoods()) {
             for (Agent agent : Session.getAgents().values()) {
                 while (!agentComplete) wait();
                 agentComplete = false;
                 if ((IPO.getPrice() < agent.getTargetPrice()) && (IPO.getNumOffered() > 0)) {
-                    int wantToBuy = (startingOffer / Session.getNumAgents());
+                    int wantToBuy = (startingOffer / (Session.getNumAgents() + 1));
                     if (wantToBuy > 0) {
                         if (IPO.getNumOffered() >= wantToBuy) {
                             agent.CheckInitial(wantToBuy, this);
@@ -96,7 +97,7 @@ public class TradingCycle {
                 notifyAll();
             }
             notifyAll();
-        }
+        //}
     }
 
     private void createTrades(int roundNum) throws InterruptedException {
@@ -148,6 +149,7 @@ public class TradingCycle {
                     }
                     */
 
+
                     if (agent.getChance() == 1) {
                         if (roundNum > 10) {
                             MomentumSwing ms = new MomentumSwing(agent, this, roundNum);
@@ -162,13 +164,13 @@ public class TradingCycle {
                         }
                     } else if (agent.getChance() == 3) {
                         if (roundNum > 16) {
-                            RSI rs = new RSI(agent, this, roundNum);
-                            Runnable rt = new Thread(rs);
+                            RSI br = new RSI(agent, this, roundNum);
+                            Runnable rt = new Thread(br);
                             rt.run();
                             if (roundNum > 160) {
                                 RSI10 rp = new RSI10(agent, this, roundNum);
-                                rt = new Thread(rp);
-                                rt.run();
+                                Runnable rb = new Thread(rp);
+                                rb.run();
                             }
                         }
                     } else if (agent.getChance() == 4) {
@@ -179,39 +181,48 @@ public class TradingCycle {
                         }
                     } else if (agent.getChance() == 5) {
                         if (roundNum > 160) {
-                            RSI10 rp = new RSI10(agent, this, roundNum);
-                            Runnable pr = new Thread(rp);
-                            pr.run();
+                            RSI10 te = new RSI10(agent, this, roundNum);
+                            Runnable fi = new Thread(te);
+                            fi.run();
                         }
-                        /*
+                        /* high frequency does produce slight profit, but always tiny and suffers in down market, also makes trading for others a lot worse
                     } else if (agent.getChance() == 3) {
-                        //if ((roundNum % 10) == 1) {
                             HighFrequency hf = new HighFrequency(agent, this, roundNum, numOfRounds);
                             Runnable ht = new Thread(hf);
                             ht.run();
-                        //}
                         */
                     } else {
                         DefaultStrategy co = new DefaultStrategy(agent, this, roundNum);
-                        Runnable ts = new Thread(co);
-                        ts.run();
+                        Runnable ce = new Thread(co);
+                        ce.run();
                     }
 
-                }// else { agentComplete = true; }
+                } else {
+                    agentComplete = true;
+                    Good good = Exchange.getInstance().getGoods().get(0);
+                    if ((Good.getBid().size() > 0) && (Good.getAsk().size() > 0)) {
+                        if (!((good.getLowestAsk() < (Exchange.lastPrice * 1.1)) && (good.getLowestAsk() > (Exchange.lastPrice * 0.9)))) {
+                            if (!((good.getHighestBid() < (Exchange.lastPrice * 1.1)) && (good.getHighestBid() > (Exchange.lastPrice * 0.9)))) {
+                                float middle = good.getLowestAsk() - good.getHighestBid();
+                                Exchange.lastPrice = (float) ((float) (Math.floor((good.getHighestBid() + (middle * 0.5)) * 100)) * 0.01);
+                            }
+                        }
+                    }
+                }
             }
-            mut(roundNum);
-            System.out.println();
+            mut();
             System.out.println("Round " + (roundNum + 1) + " of " + numOfRounds);
             System.out.println("Bid: " + Exchange.getInstance().getGoods().get(0).bidString());
             System.out.println("Ask: " + Exchange.getInstance().getGoods().get(0).askString());
             if (Good.getBid().size() > 0) {
                 System.out.println("Highest bid: " + Exchange.getInstance().getGoods().get(0).getHighestBid());
             }
-            if (Good.getAsk().size() > 1) {
+            if (Good.getAsk().size() > 0) {
                 System.out.println("Lowest ask: " + Exchange.getInstance().getGoods().get(0).getLowestAsk());
             }
             System.out.println("Trades so far: " + (Good.getNumTrades()));
             System.out.println("Total shares traded: " + (int)Good.getVolume());
+            System.out.println("Overall sentiment: " + Agent.getSentiment());
             ///*
             if (Exchange.getRsi() > 0) {
                 System.out.println("RSI  : " + Exchange.getRsi());
@@ -219,18 +230,20 @@ public class TradingCycle {
             if (Exchange.getRsiP() > 0) {
                 System.out.println("RSI 5: " + Exchange.getRsiP());
             }
+            System.out.println();
              //*/
         //}
     }
 
     private void analyzeStrategies() {
         analysis("default", 0, Exchange.getDefaultCount());
+        analysis("default(2)", 6, Exchange.getDefaultCount());
         analysis("momentum", 1, Exchange.getMomCount());
         analysis("sentiment", 2, Exchange.getSentCount());
         //analysis("high frequency", 3, Exchange.getHighCount());
         analysis("Both RSI", 3, Exchange.getHighCount());
         analysis("RSI", 4, Exchange.getRsiCount());
-        analysis("RSI 5", 5, Exchange.getRsi10Count());
+        analysis("RSIext", 5, Exchange.getRsi10Count());
         System.out.println();
     }
     private void analysis(String name, int id, float count) {
@@ -294,7 +307,7 @@ public class TradingCycle {
         cs.setVisible(true);
     }
 
-    private void mut(int roundNum) {
+    private void mut() {
         Random rand = new Random();
         int chance = rand.nextInt(1000);
         if (chance > 900) {
@@ -306,10 +319,7 @@ public class TradingCycle {
         if (chance > 995) {
             Agent.setSentiment(13);
             if (signalLogging) {
-                String ANSI_GREEN = "\u001B[32m";
-                String ANSI_RED = "\u001B[31m";
-                String ANSI_RESET = "\u001B[0m";
-                Exchange.addLog(ANSI_RED + "Round " + roundNum + ": Strong Negative Sentiment." + ANSI_RESET);
+                Exchange.negLog();
             }
         }
         if (chance < 100) {
@@ -321,10 +331,7 @@ public class TradingCycle {
         if (chance < 5) {
             Agent.setSentiment(25);
             if (signalLogging) {
-                String ANSI_GREEN = "\u001B[32m";
-                String ANSI_RED = "\u001B[31m";
-                String ANSI_RESET = "\u001B[0m";
-                Exchange.addLog(ANSI_GREEN + "Round " + roundNum + ": Strong Positive Sentiment." + ANSI_RESET);
+                Exchange.posLog();
             }
         }
         if ((chance > 400) && (chance < 450)) {

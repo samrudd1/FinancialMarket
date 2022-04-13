@@ -54,6 +54,7 @@ public class Good implements Comparable{
         id = name + findId();
         Session.getGoods().add(this);
         Session.getDirectGoods().add(this);
+        Exchange.lastPrice = price;
         saveGood(true);
     }
     */
@@ -72,7 +73,8 @@ public class Good implements Comparable{
         Exchange.getInstance().addGood(this);
         getCompany().getGoodsOwned().add(0, new OwnedGood(getCompany(), this, directlyAvailable, 0, 0, true));
         directlyAvailable = 0;
-        addAsk(new Offer(price, getCompany(), this, getCompany().getGoodsOwned().get(0).getNumOwned()));
+        ask.add(new Offer(price, getCompany(), this, getCompany().getGoodsOwned().get(0).getNumOwned()));
+        Exchange.lastPrice = price;
         saveGood(true);
     }
 
@@ -91,7 +93,8 @@ public class Good implements Comparable{
         Exchange.getInstance().addGood(this);
         getCompany().getGoodsOwned().add(0, new OwnedGood(getCompany(), this, directlyAvailable, 0, 0, true));
         directlyAvailable = 0;
-        addAsk(new Offer(price, getCompany(), this, getCompany().getGoodsOwned().get(0).getNumOwned()));
+        ask.add(new Offer(price, getCompany(), this, getCompany().getGoodsOwned().get(0).getNumOwned()));
+        Exchange.lastPrice = price;
         saveGood(true);
     }
 
@@ -113,7 +116,8 @@ public class Good implements Comparable{
         Exchange.getInstance().addGood(this);
         getCompany().getGoodsOwned().add(0, new OwnedGood(getCompany(), this, directlyAvailable, 0, 0, true));
         directlyAvailable = 0;
-        addAsk(new Offer(price, getCompany(), this, getCompany().getGoodsOwned().get(0).getNumOwned()));
+        ask.add(new Offer(price, getCompany(), this, getCompany().getGoodsOwned().get(0).getNumOwned()));
+        Exchange.lastPrice = price;
         //saveGood(true);
     }
 
@@ -181,7 +185,7 @@ public class Good implements Comparable{
     public synchronized Offer getHighestBidOffer() throws InterruptedException {
         while (bidLock) wait();
         bidLock = true;
-        //bid.trimToSize();
+        bid.trimToSize();
         Collections.sort(bid);
         if (bid.size() > 0) {
             bidLock = false;
@@ -195,7 +199,7 @@ public class Good implements Comparable{
     public synchronized Offer getLowestAskOffer() throws InterruptedException {
         while (askLock) wait();
         askLock = true;
-        //ask.trimToSize();
+        ask.trimToSize();
         Collections.sort(ask);
         if (ask.size() > 0) {
             askLock = false;
@@ -211,40 +215,40 @@ public class Good implements Comparable{
         while (bidLock) wait();
         bidLock = true;
         Collections.sort(bid);
-        String str = "";
-        if (bid.size() > 100) {
-            for (int i = (bid.size() - 1); i >= (bid.size() - 101); i--) {
+        StringBuilder str = new StringBuilder();
+        if (bid.size() > 20) {
+            for (int i = (bid.size() - 1); i >= (bid.size() - 21); i--) {
                 Offer offer = bid.get(i);
-                str += "[q: " + offer.getNumOffered() + " p: " + offer.getPrice() + "] ";
+                str.append("[q: ").append(offer.getNumOffered()).append(" p: ").append(offer.getPrice()).append("] ");
             }
         } else {
             for (int i = (bid.size() - 1); i >= 0; i--) {
                 Offer offer = bid.get(i);
-                str += "[q: " + offer.getNumOffered() + " p: " + offer.getPrice() + "] ";
+                str.append("[q: ").append(offer.getNumOffered()).append(" p: ").append(offer.getPrice()).append("] ");
             }
         }
         bidLock = false;
         notify();
-        return str;
+        return str.toString();
     }
     public synchronized String askString() throws InterruptedException {
         while (askLock) wait();
         askLock = true;
         Collections.sort(ask);
-        String str = "";
-        if (ask.size() > 100) {
-            for (int i = 0; i < 100; i++) {
+        StringBuilder str = new StringBuilder();
+        if (ask.size() > 20) {
+            for (int i = 0; i < 20; i++) {
                 Offer offer = ask.get(i);
-                str += "[q: " + offer.getNumOffered() + " p: " + offer.getPrice() + "] ";
+                str.append("[q: ").append(offer.getNumOffered()).append(" p: ").append(offer.getPrice()).append("] ");
             }
         } else {
             for (Offer offer : ask) {
-                str += "[q: " + offer.getNumOffered() + " p: " + offer.getPrice() + "] ";
+                str.append("[q: ").append(offer.getNumOffered()).append(" p: ").append(offer.getPrice()).append("] ");
             }
         }
         askLock = false;
         notify();
-        return str;
+        return str.toString();
     }
 
     public synchronized void addBid(Offer offer) throws InterruptedException {
@@ -253,11 +257,41 @@ public class Good implements Comparable{
         if (offer.getPrice() > 0) {
             bid.add(offer);
             //log.info("new bid of " + offer.getNumOffered() + " shares at " + offer.getPrice());
-            //bid.trimToSize();
         }
+        bid.trimToSize();
         Collections.sort(bid);
         bidLock = false;
         notify();
+        /*
+        while (bidLock) wait();
+        bidLock = true;
+        if (ask.size() > 0) {
+            if ((offer.getPrice() > 0) && (offer.getPrice() < ask.get(0).getPrice())) {
+                bid.add(offer);
+                offer.getOfferMaker().setPlacedBid(true);
+                //log.info("new bid of " + offer.getNumOffered() + " shares at " + offer.getPrice());
+            }
+        } else {
+            float highBid;
+            if (bid.size() > 0) {
+                bid.trimToSize();
+                Collections.sort(bid);
+                highBid = bid.get(bid.size()-1).getPrice();
+            } else {
+                highBid = 999;
+            }
+            if (offer.getPrice() < highBid) {
+                bid.add(offer);
+                offer.getOfferMaker().setPlacedBid(true);
+                //log.info("new bid of " + offer.getNumOffered() + " shares at " + offer.getPrice());
+            }
+        }
+        bid.trimToSize();
+        Collections.sort(bid);
+        bidLock = false;
+        notify();
+
+         */
     }
     public synchronized void addAsk(Offer offer) throws InterruptedException {
         while (askLock) wait();
@@ -265,11 +299,38 @@ public class Good implements Comparable{
         if (offer.getPrice() > 0) {
             ask.add(offer);
             //log.info("new ask of " + offer.getNumOffered() + " shares at " + offer.getPrice());
-            //ask.trimToSize();
         }
+        ask.trimToSize();
         Collections.sort(ask);
         askLock = false;
         notify();
+        /*
+        while (askLock) wait();
+        askLock = true;
+        if (bid.size() > 0) {
+            if (offer.getPrice() > bid.get(bid.size()-1).getPrice()) {
+                ask.add(offer);
+                offer.getOfferMaker().setPlacedAsk(true);
+                //log.info("new ask of " + offer.getNumOffered() + " shares at " + offer.getPrice());
+            }
+        } else {
+            float lowAsk;
+            if (ask.size() > 0) {
+                lowAsk = ask.get(0).getPrice();
+            } else {
+                lowAsk = 0;
+            }
+            if (offer.getPrice() > lowAsk) {
+                ask.add(offer);
+                offer.getOfferMaker().setPlacedAsk(true);
+                //log.info("new ask of " + offer.getNumOffered() + " shares at " + offer.getPrice());
+            }
+        }
+        ask.trimToSize();
+        Collections.sort(ask);
+        askLock = false;
+        notify();
+        */
     }
     public synchronized void removeBid(Offer offer) throws InterruptedException {
         while (bidLock) wait();
@@ -277,8 +338,8 @@ public class Good implements Comparable{
         if (bid.contains(offer)) {
             bid.remove(offer);
             offer.getOfferMaker().removedBid(offer);
-            //bid.trimToSize();
         }
+        bid.trimToSize();
         Collections.sort(bid);
         bidLock = false;
         notify();
@@ -288,9 +349,9 @@ public class Good implements Comparable{
         askLock = true;
         if (ask.contains(offer)) {
             ask.remove(offer);
-            offer.getOfferMaker().removeAsk(offer);
-            //ask.trimToSize();
+            offer.getOfferMaker().removedAsk(offer);
         }
+        ask.trimToSize();
         Collections.sort(ask);
         askLock = false;
         notify();
@@ -421,15 +482,16 @@ public class Good implements Comparable{
 
     public void setPrice(Offer offer, int traded){
         float newPrice = offer.getPrice();
-        Good.prevPrice = price;
+        prevPrice = price;
         numTrades += 1;
-        price = (((float)Math.round(newPrice*100))/100);
-        priceData.put(numTrades += 1, price);
+        price = (float)(((float)Math.floor(newPrice*100))*0.01);
+        priceData.put(numTrades + 1, price);
         priceList.add(price);
         if (newPrice > highest) { highest = newPrice; }
         if (newPrice < lowest) { lowest = newPrice; }
         vwap = (float) (((vwap * volume) + (offer.getPrice() * traded)) / (volume + traded));
         volume += traded;
+        Exchange.lastPrice = price;
         //Good.runUpdate(false);
     }
 

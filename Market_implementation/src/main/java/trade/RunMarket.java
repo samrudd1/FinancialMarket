@@ -38,8 +38,8 @@ public class RunMarket {
 
         Agent.setSentiment(20);
         Agent.ID = 1;
-        Exchange.setSignalLogging(true);
-        TradingCycle.setSignalLogging(true);
+        Exchange.setSignalLogging(true); //RSI logging
+        TradingCycle.setSignalLogging(true); //Sentiment logging
 
         new Good(true);
         for(int i = 0; i<startingAgentNo; i++){

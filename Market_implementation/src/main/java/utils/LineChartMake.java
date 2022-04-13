@@ -29,53 +29,57 @@ public class LineChartMake extends JFrame {
     public LineChartMake(ArrayList<Float> goodMap, String title) {
         this.lowest = 0;
         this.highest = 100;
-        DefaultCategoryDataset dataset = createDataset(goodMap);
-        JFreeChart chart = ChartFactory.createLineChart(
-                title,
-                "Trades",
-                "Price ($)",
-                dataset,
-                PlotOrientation.VERTICAL,
-                true,
-                true,
-                false
-        );
+        if (lowest < highest) {
+            DefaultCategoryDataset dataset = createDataset(goodMap);
+            JFreeChart chart = ChartFactory.createLineChart(
+                    title,
+                    "Trades",
+                    "Price ($)",
+                    dataset,
+                    PlotOrientation.VERTICAL,
+                    true,
+                    true,
+                    false
+            );
 
-        chart.getCategoryPlot().getRangeAxis().setRange((lowest * 0.99), (highest * 1.01));
-        ChartPanel chartPanel = new ChartPanel(chart);
-        chartPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
-        chartPanel.setBackground(Color.white);
-        add(chartPanel);
+            chart.getCategoryPlot().getRangeAxis().setRange((lowest * 0.99), (highest * 1.01));
+            ChartPanel chartPanel = new ChartPanel(chart);
+            chartPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+            chartPanel.setBackground(Color.white);
+            add(chartPanel);
 
-        pack();
-        setTitle("Line chart");
-        setLocationRelativeTo(null);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            pack();
+            setTitle("Line chart");
+            setLocationRelativeTo(null);
+            setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        }
     }
 
     private void initUI(ArrayList<Float> goodMap) {
-        DefaultCategoryDataset dataset = createDataset(goodMap);
-        JFreeChart chart = ChartFactory.createLineChart(
-                "Stock price",
-                "Trades",
-                "Price ($)",
-                dataset,
-                PlotOrientation.VERTICAL,
-                true,
-                true,
-                false
-        );
+        if (lowest < highest) {
+            DefaultCategoryDataset dataset = createDataset(goodMap);
+            JFreeChart chart = ChartFactory.createLineChart(
+                    "Stock price",
+                    "Trades",
+                    "Price ($)",
+                    dataset,
+                    PlotOrientation.VERTICAL,
+                    true,
+                    true,
+                    false
+            );
 
-        chart.getCategoryPlot().getRangeAxis().setRange((lowest * 0.99), (highest * 1.01));
-        ChartPanel chartPanel = new ChartPanel(chart);
-        chartPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
-        chartPanel.setBackground(Color.white);
-        add(chartPanel);
+            chart.getCategoryPlot().getRangeAxis().setRange((lowest * 0.99), (highest * 1.01));
+            ChartPanel chartPanel = new ChartPanel(chart);
+            chartPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+            chartPanel.setBackground(Color.white);
+            add(chartPanel);
 
-        pack();
-        setTitle("Line chart");
-        setLocationRelativeTo(null);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            pack();
+            setTitle("Line chart");
+            setLocationRelativeTo(null);
+            setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        }
     }
 
     private DefaultCategoryDataset createDataset(ArrayList<Float> goodMap) {

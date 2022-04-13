@@ -39,10 +39,10 @@ public class Agent {
     private ArrayList<OwnedGood> goodsOwned = new ArrayList<>();
     @Getter private Map<Integer,Float> fundData = new HashMap<Integer,Float>();
     @Getter private final int startingRound;
-    private boolean placedBid;
-    private boolean placedAsk;
     @Getter private ArrayList<Offer> bidsPlaced = new ArrayList<>();
     @Getter private ArrayList<Offer> asksPlaced = new ArrayList<>();
+    @Setter @Getter private boolean placedBid;
+    @Setter @Getter private boolean placedAsk;
     @Getter @Setter private static int sentiment;
     @Getter @Setter int chance;
     @Getter @Setter private int prevSentiment = 30;
@@ -50,14 +50,13 @@ public class Agent {
     @Setter private boolean prevPriceUp;
     @Getter @Setter public static int ID;
 
-    //@Getter @Setter private Offer bidMade;
-    //@Getter @Setter private Offer AskMade;
-
 
     public Agent(){
+        setPlacedAsk(false);
+        setPlacedBid(false);
         setAgentLock(false);
         Random rand = new Random();
-        chance = rand.nextInt(6);
+        chance = rand.nextInt(7);
         id = ID;
         ID += 1;//Make sure nextId is handled okay with concurrency
         if (chance == 1) {
@@ -85,6 +84,8 @@ public class Agent {
     }
 
     public Agent(String name, boolean company){
+        setPlacedAsk(false);
+        setPlacedBid(false);
         setAgentLock(false);
         id = (findId()); //Make sure nextId is handled okay with concurrency
         this.name = name;
@@ -111,12 +112,12 @@ public class Agent {
     }
     */
     public Agent(int id, String name, float funds){
-        setAgentLock(false);
-        setPlacedBid(false);
         setPlacedAsk(false);
+        setPlacedBid(false);
+        setAgentLock(false);
         Random rand = new Random();
-        chance = rand.nextInt(6);
-        this.id = id; //Make sure nextId is handled okay with concurrency
+        chance = rand.nextInt(7);
+        this.id = id;
         this.name = name;
         this.funds = funds;
         startingFunds = funds;
@@ -137,18 +138,18 @@ public class Agent {
         } else if (chance == 4) {
             targetPrice = (float) (((float) Math.round((106) * Good.getPrice())) * 0.01);
         }
-        placedAsk = false;
-        placedBid = false;
+        setPlacedBid(false);
+        setPlacedAsk(false);
         //LOGGER.info(name + " target price: " + targetPrice);
     }
     public void changeTargetPrice() {
         if (chance != 1) {
             Random rand = new Random();
             int chance = rand.nextInt(sentiment);
-            targetPrice = (float) (((float) Math.round((chance + 91) * targetPrice)) * 0.01);
+            targetPrice = (float) (((float) Math.round((chance + 94) * targetPrice)) * 0.01);
         }
-        placedAsk = false;
-        placedBid = false;
+        setPlacedBid(false);
+        setPlacedAsk(false);
     }
 
     /**
@@ -166,19 +167,21 @@ public class Agent {
         if (getFunds() < (wantToBuy * offer.getPrice())) {
             wantToBuy = (int) Math.floor(getFunds() / offer.getPrice());
         }
-        synchronized (tc) {
+        //synchronized (tc) {
             if (wantToBuy > 0) {
                 InitiateBuy ib1 = new InitiateBuy(this, offer, wantToBuy, tc);
-                Thread t1 = new Thread(ib1);
-                t1.start();
+                Runnable t1 = new Thread(ib1);
+                t1.run();
+                /*
                 try {
                     Thread.sleep(1);
                 } catch (InterruptedException e) {
                     LOGGER.info("failed sleep");
                 }
+                */
                 //saveUser(false);
             }
-        }
+        //}
     }
 
     public boolean getAgentLock() {
@@ -188,10 +191,6 @@ public class Agent {
         agentLock = val;
     }
     public ArrayList<OwnedGood> getGoodsOwned() { return goodsOwned; }
-    public boolean getPlacedAsk() { return placedAsk; }
-    public boolean getPlacedBid() { return placedBid; }
-    public void setPlacedAsk(boolean val) { this.placedAsk = val; }
-    public void setPlacedBid(boolean val) { this.placedBid = val; }
 
     /*
     public synchronized void startTrade(Agent agent, TradingCycle tc) {
@@ -205,17 +204,17 @@ public class Agent {
 
     public void removedBid(Offer offer) {
         funds = (funds + (offer.getNumOffered() * offer.getPrice()));
-        placedBid = false;
-        changeTargetPrice();
+        //changeTargetPrice();
+        setPlacedBid(false);
     }
-    public void removeAsk(Offer offer) {
+    public void removedAsk(Offer offer) {
         for (OwnedGood good: goodsOwned) {
             if (offer.getGood().getId() == good.getGood().getId()) {
                 good.setNumAvailable(good.getNumAvailable() + offer.getNumOffered());
-                placedAsk = false;
             }
         }
-        changeTargetPrice();
+        //changeTargetPrice();
+        setPlacedAsk(false);
     }
 
     /*
@@ -261,35 +260,15 @@ public class Agent {
 
         @Override
         public synchronized void run() {
-            synchronized (tc) {
+            //synchronized (tc) {
                 try {
-                    Exchange.getInstance().execute(buyer, offer.getOfferMaker(), offer, amountBought, tc, 0);
+                    boolean success = Exchange.getInstance().execute(buyer, offer.getOfferMaker(), offer, amountBought, tc, 0);
                 } catch (InterruptedException e) {
-                    LOGGER.info("trade failed");
+                    System.out.println("Initiate buy failed");
                 }
-            }
+            //}
 
             //LOGGER.info("executing trade with " + buyer.getName() + " directly for " + amountBought + " share/s at a price of " + Good.getPrice() + " each.");
-        }
-    }
-
-    /**
-     * This sells the owned goods back to the direct good and gives the user funds. Currently only a debug tool.
-     */
-    public void closeAccount(){
-        if(!(goodsOwned.isEmpty())){
-            for(OwnedGood ownedGood : goodsOwned){
-                Good good = ownedGood.getGood();
-                /*
-                Good.setDirectlyAvailable(Good.getDirectlyAvailable() + ownedGood.getNumberOwned());
-                float fundsIncrease = ownedGood.getNumberOwned() * good.getPrice();
-                setFunds(fundsIncrease + funds);
-                Session.getOwnerships().values().remove(ownedGood);
-                Session.getOwnershipsToDelete().add(ownedGood);
-                 */
-            }
-            //goodsOwned.clear(); //could add back to direct for sale, or sell all for under market price
-            saveUser(false);
         }
     }
 

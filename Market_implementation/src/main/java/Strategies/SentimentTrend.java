@@ -40,14 +40,14 @@ public class SentimentTrend extends AbstractStrategy implements Runnable {
                             if (offer.getNumOffered() < wantToBuy) {
                                 wantToBuy = offer.getNumOffered();
                             }
-                            if (offer.getPrice() < (Exchange.lastPrice * 1.001)) {
+                            //if (offer.getPrice() < (price * 1.01)) {
                                 if ((wantToBuy > 0) && (agent.getId() != offer.getOfferMaker().getId())) {
                                     boolean success = Exchange.getInstance().execute(agent, offer.getOfferMaker(), offer, wantToBuy, tc, roundNum);
                                     if (!success) {
-                                        System.out.println("trade execution failed");
+                                        System.out.println("trade execution for " + agent.getName() + "failed");
                                     }
                                 }
-                            }
+                            //}
                         //}
                     }
                 //}
@@ -84,14 +84,14 @@ public class SentimentTrend extends AbstractStrategy implements Runnable {
                             if (offer.getNumOffered() < offering) {
                                 offering = offer.getNumOffered();
                             }
-                            if (offer.getPrice() > (Exchange.lastPrice * 0.999)) {
+                            //if (offer.getPrice() > (price * 0.99)) {
                                 if (offering > 0) {
                                     boolean success = Exchange.getInstance().execute(offer.getOfferMaker(), agent, offer, offering, tc, roundNum);
                                     if (!success) {
-                                        System.out.println("trade execution failed");
+                                        System.out.println("trade execution for " + agent.getName() + "failed");
                                     }
                                 }
-                            }
+                            //}
                         //}
                     }
                 //}

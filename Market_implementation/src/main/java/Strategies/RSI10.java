@@ -39,17 +39,17 @@ public class RSI10 extends AbstractStrategy implements Runnable {
                     int wantToBuy;
                     wantToBuy = (int) Math.floor((agent.getFunds() / offer.getPrice()) * tradeMult);
                     //if (!(offer.getOfferMaker().getName().equals(agent.getName()))) { //don't need to use if strategy doesn't place bids or offers
-                        if (offer.getNumOffered() < wantToBuy) {
-                            wantToBuy = offer.getNumOffered();
-                        }
-                        if (offer.getPrice() < (Exchange.lastPrice * 1.001)) {
-                            if ((wantToBuy > 0) && (agent.getId() != offer.getOfferMaker().getId())) {
-                                boolean success = Exchange.getInstance().execute(agent, offer.getOfferMaker(), offer, wantToBuy, tc, roundNum);
-                                if (!success) {
-                                    System.out.println("trade execution failed");
-                                }
+                    if (offer.getNumOffered() < wantToBuy) {
+                        wantToBuy = offer.getNumOffered();
+                    }
+                    //if (offer.getPrice() < (price * 1.01)) {
+                        if ((wantToBuy > 0) && (agent.getId() != offer.getOfferMaker().getId())) {
+                            boolean success = Exchange.getInstance().execute(agent, offer.getOfferMaker(), offer, wantToBuy, tc, roundNum);
+                            if (!success) {
+                                System.out.println("trade execution for " + agent.getName() + "failed");
                             }
                         }
+                    //}
                     //}
                 }
                         /*
@@ -83,14 +83,14 @@ public class RSI10 extends AbstractStrategy implements Runnable {
                         if (offer.getNumOffered() < offering) {
                             offering = offer.getNumOffered();
                         }
-                        if (offer.getPrice() > (Exchange.lastPrice * 0.999)) {
+                        //if (offer.getPrice() > (price * 0.99)) {
                             if (offering > 0) {
                                 boolean success = Exchange.getInstance().execute(offer.getOfferMaker(), agent, offer, offering, tc, roundNum);
                                 if (!success) {
-                                    System.out.println("trade execution failed");
+                                    System.out.println("trade execution for " + agent.getName() + "failed");
                                 }
                             }
-                        }
+                        //}
                     //}
                 }
                         /*

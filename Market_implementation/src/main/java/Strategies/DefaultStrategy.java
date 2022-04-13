@@ -29,13 +29,13 @@ public class DefaultStrategy extends AbstractStrategy implements Runnable {
         float price = Good.getPrice();
 
         //if (random > 0.9) {
-            //agent.changeTargetPrice(price);
+        //agent.changeTargetPrice(price);
         //}
-        if (random > 0.9) {
+        if (random > 0.95) {
             agent.changeTargetPrice();
         }
-        agent.setPlacedBid(false);
-        agent.setPlacedAsk(false);
+        //agent.setPlacedBid(false);
+        //agent.setPlacedAsk(false);
 
         while(agent.getAgentLock()) wait();
         agent.setAgentLock(true);
@@ -46,8 +46,8 @@ public class DefaultStrategy extends AbstractStrategy implements Runnable {
             if (offering > 1000) {
                 offering = 1000;
             }
-            if ((agent.getTargetPrice() > highestBid) && (highestBid != 0) && (agent.getTargetPrice() < (price * 1.03))) {// || ((targetPrice < lowestAsk) && (targetPrice > highestBid) && (highestBid != 0))) {
-                if (!agent.getPlacedAsk()) {
+            if ((agent.getTargetPrice() > highestBid) && (highestBid != 0) && (agent.getTargetPrice() < (price * 1.1))) {// || ((targetPrice < lowestAsk) && (targetPrice > highestBid) && (highestBid != 0))) {
+                if (!agent.isPlacedAsk()) {
                     if (offering > 0) {
                         try {
                             createAsk(agent.getTargetPrice(), agent.getGoodsOwned().get(0), offering);
@@ -65,8 +65,8 @@ public class DefaultStrategy extends AbstractStrategy implements Runnable {
             if (purchaseLimit > 1000) {
                 purchaseLimit = 1000;
             }
-            if ((agent.getTargetPrice() < lowestAsk) && (agent.getTargetPrice() > (price * 0.97))) { //|| ((targetPrice > highestBid) && (targetPrice < lowestAsk) && (highestBid != 0))) {
-                if (!agent.getPlacedBid()) {
+            if ((agent.getTargetPrice() < lowestAsk) && (agent.getTargetPrice() > (price * 0.9))) { //|| ((targetPrice > highestBid) && (targetPrice < lowestAsk) && (highestBid != 0))) {
+                if (!agent.isPlacedBid()) {
                     if (purchaseLimit > 0) {
                         try {
                             createBid(agent.getTargetPrice(), Exchange.getInstance().getGoods().get(0), purchaseLimit);
@@ -88,7 +88,7 @@ public class DefaultStrategy extends AbstractStrategy implements Runnable {
                         if (offer.getNumOffered() < offering) {
                             offering = offer.getNumOffered();
                         }
-                        if (offer.getPrice() > (Exchange.lastPrice * 0.999)) {
+                        if (offer.getPrice() > (Exchange.lastPrice * 0.95)) {
                             if (offering > 0) {
                                 boolean success = Exchange.getInstance().execute(offer.getOfferMaker(), agent, offer, offering, tc, roundNum);
                                 if (!success) {
@@ -110,7 +110,7 @@ public class DefaultStrategy extends AbstractStrategy implements Runnable {
                         if (offer.getNumOffered() < (agent.getFunds() / offer.getPrice())) {
                             wantToBuy = offer.getNumOffered();
                         }
-                        if (offer.getPrice() < (Exchange.lastPrice * 1.001)) {
+                        if (offer.getPrice() < (Exchange.lastPrice * 1.05)) {
                             if ((wantToBuy > 0) && (agent.getId() != offer.getOfferMaker().getId())) {
                                 boolean success = Exchange.getInstance().execute(agent, offer.getOfferMaker(), offer, wantToBuy, tc, roundNum);
                                 if (!success) {
