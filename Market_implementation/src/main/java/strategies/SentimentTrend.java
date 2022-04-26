@@ -1,7 +1,6 @@
-package Strategies;
+package strategies;
 
 import agent.Agent;
-import good.Good;
 import good.Offer;
 import lombok.SneakyThrows;
 import trade.Exchange;
@@ -24,7 +23,7 @@ public class SentimentTrend extends AbstractStrategy implements Runnable {
     public synchronized void run() {
         //float lowestAsk = Exchange.getInstance().getGoods().get(0).getLowestAsk();
         //float highestBid = Exchange.getInstance().getGoods().get(0).getHighestBid();
-        float price = Good.getPrice();
+        float price = Exchange.getInstance().getPriceCheck();
 
         while(agent.getAgentLock()) wait();
         agent.setAgentLock(true);
@@ -40,7 +39,7 @@ public class SentimentTrend extends AbstractStrategy implements Runnable {
                             if (offer.getNumOffered() < wantToBuy) {
                                 wantToBuy = offer.getNumOffered();
                             }
-                            if (offer.getPrice() < (Exchange.lastPrice * 1.001)) {
+                            if (offer.getPrice() < (price * 1.02)) {
                                 if ((wantToBuy > 0) && (agent.getId() != offer.getOfferMaker().getId())) {
                                     boolean success = Exchange.getInstance().execute(agent, offer.getOfferMaker(), offer, wantToBuy, tc, roundNum);
                                     if (!success) {
@@ -84,7 +83,7 @@ public class SentimentTrend extends AbstractStrategy implements Runnable {
                             if (offer.getNumOffered() < offering) {
                                 offering = offer.getNumOffered();
                             }
-                            if (offer.getPrice() > (Exchange.lastPrice * 0.999)) {
+                            if (offer.getPrice() > (price * 0.98)) {
                                 if (offering > 0) {
                                     boolean success = Exchange.getInstance().execute(offer.getOfferMaker(), agent, offer, offering, tc, roundNum);
                                     if (!success) {

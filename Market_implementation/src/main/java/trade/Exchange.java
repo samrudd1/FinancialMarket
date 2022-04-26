@@ -6,7 +6,7 @@ import good.Good;
 import good.Offer;
 import lombok.Getter;
 import lombok.Setter;
-import utils.LineChartLive;
+import utilities.LineChartLive;
 
 import java.util.ArrayList;
 
@@ -16,12 +16,14 @@ public class Exchange {
     public Exchange() {}
     public static Exchange getInstance() { return exchange; }
     private static boolean exchangeLock = false;
-    private boolean complete;
     public void addGood(Good good) {
         goods.add(good);
     }
     @Getter private ArrayList<Float> avg20 = new ArrayList<Float>() ;
+    private float lastAvg = 0;
+    @Getter @Setter private float priceCheck;
     @Getter private static LineChartLive liveChart = new LineChartLive();
+    @Getter @Setter private static boolean liveActive = false;
     public static final String ANSI_GREEN = "\u001B[32m";
     public static final String ANSI_RED = "\u001B[31m";
     public static final String ANSI_RESET = "\u001B[0m";
@@ -32,9 +34,11 @@ public class Exchange {
     @Getter private static float highCount = 0;
     @Getter private static float rsiCount = 0;
     @Getter private static float rsi10Count = 0;
+    @Getter private static float offerCount = 0;
     @Getter private static int round = 0;
     private static boolean newRound = false;
     @Getter private static ArrayList<Float> roundFinalPrice = new ArrayList<>();
+    @Getter private static float roundPrice = 0;
     @Getter private static ArrayList<Float> rsiList = new ArrayList<>();
     @Getter private static float rsi = 0;
     @Getter private static ArrayList<Float> rsiPList = new ArrayList<>();
@@ -43,62 +47,71 @@ public class Exchange {
     @Getter @Setter private static boolean signalLogging;
 
     public synchronized boolean execute(Agent buyer, Agent seller, Offer offer, int amountBought, TradingCycle tc, int roundNum) throws InterruptedException {
-        complete = false;
+        boolean complete = true;
         if (buyer == seller) {
+            TradingCycle.setAgentComplete(true);
+            tc.notifyAll();
             return false;
         } else {
-            //while (offer.getGood().getGoodLock()) wait();
-            //buyer.setAgentLock(true);
-            //seller.setAgentLock(true);
             while (exchangeLock) wait();
             exchangeLock = true;
-            //offer.getGood().setGoodLock(true);
-            if (Good.getBid().contains(offer) || Good.getAsk().contains(offer)) {
-                if ((offer.getPrice() < (lastPrice * 1.01)) || (offer.getPrice() > (lastPrice * 0.99))) {
-                    if (offer.getNumOffered() > 0) {
-                        if (offer.getNumOffered() < amountBought) {
-                            amountBought = offer.getNumOffered();
-                        }
-                        if ((buyer.getGoodsOwned().isEmpty())) {
-                            buyer.getGoodsOwned().add(0, new OwnedGood(buyer, offer.getGood(), amountBought, amountBought, (((float) Math.round(offer.getPrice() * 100)) / 100), true));
-                            complete = true;
-                        } else {
-                            OwnedGood tempOwned = buyer.getGoodsOwned().get(0);
-                            float newBoughtAt = (float) Math.round(((tempOwned.getBoughtAt() * tempOwned.getNumOwned()) + (amountBought * offer.getPrice())) * 100) / ((tempOwned.getNumOwned() + amountBought) * 100);
-                            int newNumOwned = (tempOwned.getNumOwned() + amountBought);
-                            int newAvailable = (tempOwned.getNumAvailable() + amountBought);
-                            OwnedGood newOne = new OwnedGood(buyer, offer.getGood(), newNumOwned, newAvailable, newBoughtAt, false);
-                            buyer.getGoodsOwned().set(0, newOne);
-                            complete = true;
-                        }
-                        offer.getGood().setPrice(offer, amountBought);
-                        if (amountBought == offer.getNumOffered()) {
-                            if (Good.getBid().contains(offer)) {
-                                offer.getGood().removeBid(offer);
-                                offer.setNumOffered(0);
-                            } else {
-                                offer.getGood().removeAsk(offer);
-                                offer.setNumOffered(0);
-                            }
-                        } else {
-                            offer.setNumOffered(offer.getNumOffered() - amountBought);
-                        }
+            complete = true;
 
-                        buyer.setFunds(buyer.getFunds() - (offer.getPrice() * amountBought));
-                        seller.setFunds(seller.getFunds() + (offer.getPrice() * amountBought));
-                        //Runnable chartUpdate = new Thread(TradingCycle.getLiveChart());
-                        //chartUpdate.run();
+            if (lastAvg > 0) {
+                priceCheck = lastAvg;
+            } else {
+                priceCheck = lastPrice;
+            }
+            if (Good.getBid().contains(offer) || Good.getAsk().contains(offer)) {
+                if ((offer.getPrice() < (priceCheck * 1.05)) && (offer.getPrice() > (priceCheck * 0.96))) {
+                    if (offer.getNumOffered() > 0) {
+
+                        try {
+                            if (offer.getNumOffered() < amountBought) {
+                                amountBought = offer.getNumOffered();
+                            }
+                            if ((buyer.getGoodsOwned().isEmpty())) {
+                                buyer.getGoodsOwned().add(0, new OwnedGood(buyer, offer.getGood(), amountBought, amountBought, (((float) Math.round(offer.getPrice() * 100)) / 100), true));
+                            } else {
+                                OwnedGood tempOwned = buyer.getGoodsOwned().get(0);
+                                float newBoughtAt = (float) Math.round(((tempOwned.getBoughtAt() * tempOwned.getNumOwned()) + (amountBought * offer.getPrice())) * 100) / ((tempOwned.getNumOwned() + amountBought) * 100);
+                                int newNumOwned = (tempOwned.getNumOwned() + amountBought);
+                                int newAvailable = (tempOwned.getNumAvailable() + amountBought);
+                                OwnedGood newOne = new OwnedGood(buyer, offer.getGood(), newNumOwned, newAvailable, newBoughtAt, false);
+                                buyer.getGoodsOwned().set(0, newOne);
+                            }
+                            offer.getGood().setPrice(offer, amountBought);
+                            if (amountBought == offer.getNumOffered()) {
+                                if (Good.getAsk().contains(offer)) {
+                                    offer.getGood().removeAsk(offer);
+                                    offer.setNumOffered(0);
+                                } else {
+                                    offer.getGood().removeBid(offer);
+                                    offer.setNumOffered(0);
+                                }
+                            } else {
+                                offer.setNumOffered(offer.getNumOffered() - amountBought);
+                            }
+                            buyer.setFunds(buyer.getFunds() - (offer.getPrice() * amountBought));
+                            seller.setFunds(seller.getFunds() + (offer.getPrice() * amountBought));
+                        } catch (Exception e) {
+                            complete = false;
+                        }
+                    } else {
+                        if (Good.getBid().contains(offer)) {
+                            offer.getGood().removeBid(offer);
+                        } else {
+                            offer.getGood().removeAsk(offer);
+                        }
                     }
                     if (roundNum > round) {
                         roundFinalPrice.add(lastPrice);
+                        roundPrice = lastPrice;
                         newRound = true;
                     }
                     round = roundNum;
                     lastPrice = offer.getPrice();
                 }
-                //buyer.setAgentLock(false);
-                //seller.setAgentLock(false);
-                //offer.getGood().setGoodLock(false);
                 TradingCycle.setAgentComplete(true);
                 exchangeLock = false;
                 notifyAll();
@@ -120,6 +133,7 @@ public class Exchange {
                         total++;
                     }
                     avgResult = avgResult / total;
+                    lastAvg = avgResult;
                     Good.getAvgPriceList().add(avgResult);
                 }
 
@@ -147,11 +161,11 @@ public class Exchange {
                         }
                     }
 
-                    if (roundFinalPrice.size() > 75) {
+                    if (roundFinalPrice.size() > 150) {
                         avgGain = 0;
                         avgLoss = 0;
-                        for (int i = (roundFinalPrice.size() - 1); i >= (roundFinalPrice.size() - 70); i-=5) {
-                            diff = (roundFinalPrice.get(i) / roundFinalPrice.get(i - 5)) - 1;
+                        for (int i = (roundFinalPrice.size() - 1); i >= (roundFinalPrice.size() - 140); i-=10) {
+                            diff = (roundFinalPrice.get(i) / roundFinalPrice.get(i - 10)) - 1;
                             if (diff > 0) {
                                 avgGain += diff;
                             } else if (diff < 0) {
@@ -162,10 +176,10 @@ public class Exchange {
                         rsiPList.add(rsiP);
 
                         if (signalLogging) {
-                            if (rsiP > 80) {
-                                signalLog.add(ANSI_RED + "Round " + roundNum + ": RSI 5 Over-Bought: " + rsiP + ", Sentiment: " + Agent.getSentiment() + ANSI_RESET);
-                            } else if (rsiP < 20) {
-                                signalLog.add(ANSI_GREEN + "Round " + roundNum + ": RSI 5 Over-Sold: " + rsiP + ", Sentiment: " + Agent.getSentiment() + ANSI_RESET);
+                            if (rsiP > 70) {
+                                signalLog.add(ANSI_RED + "Round " + roundNum + ": RSI 10 Over-Bought: " + rsiP + ", Sentiment: " + Agent.getSentiment() + ANSI_RESET);
+                            } else if (rsiP < 30) {
+                                signalLog.add(ANSI_GREEN + "Round " + roundNum + ": RSI 10 Over-Sold: " + rsiP + ", Sentiment: " + Agent.getSentiment() + ANSI_RESET);
                             }
                         }
                     }
@@ -201,19 +215,18 @@ public class Exchange {
                 //buyer.saveUser(false);
                 //seller.saveUser(false);
             } else {
-                //buyer.setAgentLock(false);
-                //seller.setAgentLock(false);
-                //offer.getGood().setGoodLock(false);
                 TradingCycle.setAgentComplete(true);
                 exchangeLock = false;
                 notifyAll();
                 tc.notifyAll();
             }
         }
-        //if (Good.getNumTrades() % 10 == 0) {
-            //Runnable lc = new Thread(liveChart);
-            //lc.run();
-        //}
+        if (liveActive) {
+            if (Good.getNumTrades() % 10 == 0) {
+                Runnable lc = new Thread(liveChart);
+                lc.run();
+            }
+        }
         return complete;
     }
 
@@ -234,6 +247,8 @@ public class Exchange {
             rsiCount += 1;
         } else if (chance == 5) {
             rsi10Count += 1;
+        } else if (chance == 6) {
+            offerCount += 1;
         } else {
             defaultCount += 1;
         }

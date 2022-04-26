@@ -8,8 +8,8 @@ import lombok.ToString;
 import session.Session;
 import trade.Exchange;
 import trade.TradingCycle;
-import utils.PropertiesLabels;
-import utils.SQLConnector;
+import utilities.PropertiesLabels;
+import utilities.SQLConnector;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -35,6 +35,8 @@ public class Agent {
     private float funds;
     @Getter private final float startingFunds;
     @Getter @Setter private float targetPrice;
+    @Getter @Setter private static int sentAdjust = 0;
+    @Getter @Setter private static int roundChange = -900;
     private boolean agentLock;
     private ArrayList<OwnedGood> goodsOwned = new ArrayList<>();
     @Getter private Map<Integer,Float> fundData = new HashMap<Integer,Float>();
@@ -45,21 +47,29 @@ public class Agent {
     @Getter private ArrayList<Offer> asksPlaced = new ArrayList<>();
     @Getter @Setter private static int sentiment;
     @Getter @Setter int chance;
-    @Getter @Setter private int prevSentiment = 30;
-    @Getter @Setter private float prevRoundPrice = Good.getPrice();
-    @Setter private boolean prevPriceUp;
+    @Setter private boolean prevPriceUp = false;
     @Getter @Setter public static int ID;
-
-    //@Getter @Setter private Offer bidMade;
-    //@Getter @Setter private Offer AskMade;
 
 
     public Agent(){
         setAgentLock(false);
         Random rand = new Random();
-        chance = rand.nextInt(6);
+        chance = rand.nextInt(11);
         id = ID;
         ID += 1;//Make sure nextId is handled okay with concurrency
+        if (chance == 7) {
+            chance = 0;
+        }
+        if (chance == 8) {
+            chance = 0;
+        }
+        if (chance == 9) {
+            chance = 6;
+        }
+        if (chance == 10) {
+            chance = 6;
+        }
+
         if (chance == 1) {
             name = "Momentum " + id;
         } else if (chance == 2) {
@@ -71,6 +81,8 @@ public class Agent {
             name = "RSI " + id;
         } else if (chance == 5) {
             name = "RSI10 " + id;
+        } else if (chance == 6) {
+            name = "OfferOnly " + id;
         } else {
             name = "Default " + id;
         }
@@ -115,7 +127,7 @@ public class Agent {
         setPlacedBid(false);
         setPlacedAsk(false);
         Random rand = new Random();
-        chance = rand.nextInt(6);
+        chance = rand.nextInt(7);
         this.id = id; //Make sure nextId is handled okay with concurrency
         this.name = name;
         this.funds = funds;
@@ -142,13 +154,11 @@ public class Agent {
         //LOGGER.info(name + " target price: " + targetPrice);
     }
     public void changeTargetPrice() {
-        if (chance != 1) {
-            Random rand = new Random();
-            int chance = rand.nextInt(sentiment);
-            targetPrice = (float) (((float) Math.round((chance + 91) * targetPrice)) * 0.01);
-        }
-        placedAsk = false;
-        placedBid = false;
+        Random rand = new Random();
+        int chance = rand.nextInt(sentiment) + sentAdjust;
+        targetPrice = (float) (((float) Math.round((chance + 91) * targetPrice)) * 0.01);
+        //placedAsk = false;
+        //placedBid = false;
     }
 
     /**
@@ -159,26 +169,6 @@ public class Agent {
         Random rand = new Random();
         int fundsInt = rand.nextInt((MAX_STARTING_FUNDS - MIN_STARTING_FUNDS) + 1 ) + MIN_STARTING_FUNDS;
         return (float) fundsInt;
-    }
-
-    public synchronized void CheckInitial(int wantToBuy, TradingCycle tc) {
-        Offer offer = Good.getAsk().get(0);
-        if (getFunds() < (wantToBuy * offer.getPrice())) {
-            wantToBuy = (int) Math.floor(getFunds() / offer.getPrice());
-        }
-        synchronized (tc) {
-            if (wantToBuy > 0) {
-                InitiateBuy ib1 = new InitiateBuy(this, offer, wantToBuy, tc);
-                Thread t1 = new Thread(ib1);
-                t1.start();
-                try {
-                    Thread.sleep(1);
-                } catch (InterruptedException e) {
-                    LOGGER.info("failed sleep");
-                }
-                //saveUser(false);
-            }
-        }
     }
 
     public boolean getAgentLock() {
@@ -193,15 +183,6 @@ public class Agent {
     public void setPlacedAsk(boolean val) { this.placedAsk = val; }
     public void setPlacedBid(boolean val) { this.placedBid = val; }
 
-    /*
-    public synchronized void startTrade(Agent agent, TradingCycle tc) {
-        //synchronized (tc) {
-            ChooseTrade ct = new ChooseTrade(agent, tc);
-            Thread ts = new Thread(ct);
-            ts.start();
-        //}
-    }
-    */
 
     public void removedBid(Offer offer) {
         funds = (funds + (offer.getNumOffered() * offer.getPrice()));
@@ -212,86 +193,41 @@ public class Agent {
         for (OwnedGood good: goodsOwned) {
             if (offer.getGood().getId() == good.getGood().getId()) {
                 good.setNumAvailable(good.getNumAvailable() + offer.getNumOffered());
-                placedAsk = false;
             }
         }
+        placedAsk = false;
         changeTargetPrice();
     }
 
-    /*
-    private class InitiateSell implements Runnable {
-        @Getter private Agent seller;
-        @Getter private Offer offer;
-        @Getter private int amountBought;
 
-        public InitiateSell(Agent seller, Offer offer, int amountBought) {
-            this.seller = seller;
-            this.offer = offer;
-            this.amountBought = amountBought;
+    public void CheckInitial(int wantToBuy, TradingCycle tc) {
+        Offer offer = Good.getAsk().get(0);
+        if (getFunds() < (wantToBuy * offer.getPrice())) {
+            wantToBuy = (int) Math.floor(getFunds() / offer.getPrice());
         }
-
-        @Override
-        public void run() {
-            try {
-                Exchange.getInstance().execute(offer.getOfferMaker(), seller, offer, amountBought);
-                System.out.println("trade executed between " + offer.getOfferMaker().getName() + " and "
-                        + seller.getName() + " for " + amountBought + " share/s at a price of "
-                        + ((float)Math.round(offer.getPrice() * 100) / 100) + " each. There are "
-                        + offer.getNumOffered() + " left on the bid.");
-            } catch (InterruptedException e) {
-                LOGGER.info("trade failed");
-            }
+        //synchronized (tc) {
+        if (wantToBuy > 0) {
+            InitiateBuy ib1 = new InitiateBuy(this, offer, wantToBuy, tc);
+            Runnable t1 = new Thread(ib1);
+            t1.run();
+            //saveUser(false);
         }
+        //}
     }
-    */
 
-
-    private class InitiateBuy implements Runnable {
-        @Getter private final Agent buyer;
-        @Getter private final Offer offer;
-        @Getter private final int amountBought;
-        private final TradingCycle tc;
-
-        public InitiateBuy(Agent buyer, Offer offer, int amountBought, TradingCycle tc) {
-            this.buyer = buyer;
-            this.offer = offer;
-            this.amountBought = amountBought;
-            this.tc = tc;
-        }
+    private record InitiateBuy(@Getter Agent buyer, @Getter Offer offer, @Getter int amountBought, TradingCycle tc) implements Runnable {
 
         @Override
         public synchronized void run() {
-            synchronized (tc) {
-                try {
-                    Exchange.getInstance().execute(buyer, offer.getOfferMaker(), offer, amountBought, tc, 0);
-                } catch (InterruptedException e) {
-                    LOGGER.info("trade failed");
-                }
+            try {
+                Exchange.getInstance().execute(buyer, offer.getOfferMaker(), offer, amountBought, tc, 0);
+            } catch (InterruptedException e) {
+                LOGGER.info("trade failed");
             }
-
             //LOGGER.info("executing trade with " + buyer.getName() + " directly for " + amountBought + " share/s at a price of " + Good.getPrice() + " each.");
         }
     }
 
-    /**
-     * This sells the owned goods back to the direct good and gives the user funds. Currently only a debug tool.
-     */
-    public void closeAccount(){
-        if(!(goodsOwned.isEmpty())){
-            for(OwnedGood ownedGood : goodsOwned){
-                Good good = ownedGood.getGood();
-                /*
-                Good.setDirectlyAvailable(Good.getDirectlyAvailable() + ownedGood.getNumberOwned());
-                float fundsIncrease = ownedGood.getNumberOwned() * good.getPrice();
-                setFunds(fundsIncrease + funds);
-                Session.getOwnerships().values().remove(ownedGood);
-                Session.getOwnershipsToDelete().add(ownedGood);
-                 */
-            }
-            //goodsOwned.clear(); //could add back to direct for sale, or sell all for under market price
-            saveUser(false);
-        }
-    }
 
     private int findId(){
         int idToReturn = 0;

@@ -1,8 +1,6 @@
-package Strategies;
+package strategies;
 
 import agent.Agent;
-import agent.OwnedGood;
-import good.Good;
 import good.Offer;
 import lombok.SneakyThrows;
 import trade.Exchange;
@@ -26,7 +24,7 @@ public class DefaultStrategy extends AbstractStrategy implements Runnable {
         float random = (float) Math.random();
         float lowestAsk = Exchange.getInstance().getGoods().get(0).getLowestAsk();
         float highestBid = Exchange.getInstance().getGoods().get(0).getHighestBid();
-        float price = Good.getPrice();
+        float price = Exchange.getInstance().getPriceCheck();
 
         //if (random > 0.9) {
             //agent.changeTargetPrice(price);
@@ -34,8 +32,8 @@ public class DefaultStrategy extends AbstractStrategy implements Runnable {
         if (random > 0.9) {
             agent.changeTargetPrice();
         }
-        agent.setPlacedBid(false);
-        agent.setPlacedAsk(false);
+        //agent.setPlacedBid(false);
+        //agent.setPlacedAsk(false);
 
         while(agent.getAgentLock()) wait();
         agent.setAgentLock(true);
@@ -46,7 +44,7 @@ public class DefaultStrategy extends AbstractStrategy implements Runnable {
             if (offering > 1000) {
                 offering = 1000;
             }
-            if ((agent.getTargetPrice() > highestBid) && (highestBid != 0) && (agent.getTargetPrice() < (price * 1.03))) {// || ((targetPrice < lowestAsk) && (targetPrice > highestBid) && (highestBid != 0))) {
+            if ((agent.getTargetPrice() > highestBid) && (agent.getTargetPrice() < (price * 1.1))) {// || ((targetPrice < lowestAsk) && (targetPrice > highestBid) && (highestBid != 0))) {
                 if (!agent.getPlacedAsk()) {
                     if (offering > 0) {
                         try {
@@ -54,7 +52,6 @@ public class DefaultStrategy extends AbstractStrategy implements Runnable {
                         } catch (InterruptedException e) {
                             System.out.println("creating ask threw an error");
                         }
-                        //agent.setPlacedAsk(true); //not needed anymore, and bid and ask could do with being more filled for tighter spread
                     }
                 }
             }
@@ -65,7 +62,7 @@ public class DefaultStrategy extends AbstractStrategy implements Runnable {
             if (purchaseLimit > 1000) {
                 purchaseLimit = 1000;
             }
-            if ((agent.getTargetPrice() < lowestAsk) && (agent.getTargetPrice() > (price * 0.97))) { //|| ((targetPrice > highestBid) && (targetPrice < lowestAsk) && (highestBid != 0))) {
+            if ((agent.getTargetPrice() < lowestAsk) && (agent.getTargetPrice() > (price * 0.9))) { //|| ((targetPrice > highestBid) && (targetPrice < lowestAsk) && (highestBid != 0))) {
                 if (!agent.getPlacedBid()) {
                     if (purchaseLimit > 0) {
                         try {
@@ -73,7 +70,6 @@ public class DefaultStrategy extends AbstractStrategy implements Runnable {
                         } catch (InterruptedException e) {
                             System.out.println("Creating bid threw an error");
                         }
-                        //agent.setPlacedBid(true);
                     }
                 }
             }
@@ -81,15 +77,15 @@ public class DefaultStrategy extends AbstractStrategy implements Runnable {
 
         if (agent.getGoodsOwned().size() > 0) {
             if ((agent.getTargetPrice() < highestBid) && (highestBid != 0)) {
-                int offering = (int) Math.floor(agent.getGoodsOwned().get(0).getNumAvailable() * 0.25);
                 Offer offer = Exchange.getInstance().getGoods().get(0).getHighestBidOffer();
                 if (offer != null) {
                     if (!(offer.getOfferMaker().getName().equalsIgnoreCase(agent.getName()))) {
+                        int offering = (int) Math.floor(agent.getGoodsOwned().get(0).getNumAvailable() * 0.25);
                         if (offer.getNumOffered() < offering) {
                             offering = offer.getNumOffered();
                         }
-                        if (offer.getPrice() > (Exchange.lastPrice * 0.999)) {
-                            if (offering > 0) {
+                        if (offer.getPrice() > (price * 0.984)) {
+                            if ((offering > 0) && (agent.getId() != offer.getOfferMaker().getId())) {
                                 boolean success = Exchange.getInstance().execute(offer.getOfferMaker(), agent, offer, offering, tc, roundNum);
                                 if (!success) {
                                     System.out.println("trade execution failed");
@@ -107,10 +103,10 @@ public class DefaultStrategy extends AbstractStrategy implements Runnable {
                 if (offer != null) {
                     if (!(offer.getOfferMaker().getName().equals(agent.getName()))) {
                         int wantToBuy = (int) Math.floor(((agent.getFunds() / offer.getPrice()) * 0.25));
-                        if (offer.getNumOffered() < (agent.getFunds() / offer.getPrice())) {
+                        if (offer.getNumOffered() < wantToBuy) {
                             wantToBuy = offer.getNumOffered();
                         }
-                        if (offer.getPrice() < (Exchange.lastPrice * 1.001)) {
+                        if (offer.getPrice() < (price * 1.02)) {
                             if ((wantToBuy > 0) && (agent.getId() != offer.getOfferMaker().getId())) {
                                 boolean success = Exchange.getInstance().execute(agent, offer.getOfferMaker(), offer, wantToBuy, tc, roundNum);
                                 if (!success) {
@@ -129,6 +125,12 @@ public class DefaultStrategy extends AbstractStrategy implements Runnable {
             agent.createTargetPrice();
         }
         */
+
+        if ((agent.getTargetPrice() > (price * 1.2)) || (agent.getTargetPrice() < (price * 0.8))) {
+            agent.setTargetPrice(price);
+            agent.changeTargetPrice();
+        }
+
         agent.setAgentLock(false);
         notify();
         //agent.saveUser(false);

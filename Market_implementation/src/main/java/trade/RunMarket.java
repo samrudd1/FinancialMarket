@@ -4,7 +4,7 @@ import agent.Agent;
 import good.Good;
 import lombok.extern.java.Log;
 import session.Session;
-import utils.SQLConnector;
+import utilities.SQLConnector;
 
 import java.util.Scanner;
 
@@ -28,8 +28,22 @@ public class RunMarket {
         log.info("Please enter the number of starting goods.");
         int startingGoodNo = input.nextInt();
 
-        log.info("please enter the number of trading rounds.");
+        log.info("Please enter the number of trading rounds.");
         int noOfRounds = input.nextInt();
+
+        boolean pass = false;
+        while (!pass) {
+            log.info("Would you like a live stock chart? [y/n]");
+            char liveChart = Character.toLowerCase(input.next().charAt(0));
+            if (liveChart == 'y') {
+                Exchange.setLiveActive(true);
+                pass = true;
+            }
+            if (liveChart == 'n') {
+                Exchange.setLiveActive(false);
+                pass = true;
+            }
+        }
 
         Session.setNumAgents(startingAgentNo);
         Good.setOutstandingShares(startingGoodNo);
@@ -38,8 +52,8 @@ public class RunMarket {
 
         Agent.setSentiment(20);
         Agent.ID = 1;
-        Exchange.setSignalLogging(true);
-        TradingCycle.setSignalLogging(true);
+        Exchange.setSignalLogging(true); //RSI logging
+        TradingCycle.setSignalLogging(true); //Sentiment logging
 
         new Good(true);
         for(int i = 0; i<startingAgentNo; i++){

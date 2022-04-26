@@ -6,8 +6,8 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.java.Log;
 import session.Session;
-import utils.PropertiesLabels;
-import utils.SQLConnector;
+import utilities.PropertiesLabels;
+import utilities.SQLConnector;
 
 import java.util.logging.Logger;
 

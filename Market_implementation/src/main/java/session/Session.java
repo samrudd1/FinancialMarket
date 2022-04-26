@@ -5,8 +5,8 @@ import agent.OwnedGood;
 import good.Good;
 import lombok.Getter;
 import lombok.Setter;
-import utils.PropertiesLabels;
-import utils.SQLConnector;
+import utilities.PropertiesLabels;
+import utilities.SQLConnector;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;

@@ -1,4 +1,4 @@
-package utils;
+package utilities;
 
 import java.awt.*;
 import java.text.DateFormat;
@@ -60,7 +60,7 @@ public class CandleStickChart extends JPanel implements Runnable {
         volumeDataset.addSeries(volumeSeries);
         //candlestickDataset.addSeries(ohlcSeries);
 
-        JFreeChart chart = ChartFactory.createCandlestickChart("Stock", "Round", "Price", candlestickDataset, false);
+        JFreeChart chart = ChartFactory.createCandlestickChart(title, "Round", "Price", candlestickDataset, true);
 
         // 3. Set chart background
         chart.setBackgroundPaint(Color.white);
@@ -235,7 +235,7 @@ public class CandleStickChart extends JPanel implements Runnable {
         double[] volume = new double[maxCandle];
 
         for (int i = 0; i < candles.size() - 1; i++) {
-            date[i] = new Date(candles.get(i).getRound());
+            date[i] = new Date(candles.get(i).getRound() * 86400000L);
             high[i] = candles.get(i).getHigh();
             low[i] = candles.get(i).getLow();
             open[i] = candles.get(i).getOpen();

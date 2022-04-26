@@ -1,4 +1,4 @@
-package utils;
+package utilities;
 
 import good.Good;
 import org.jfree.chart.ChartFactory;
@@ -15,8 +15,8 @@ public class LineChartLive extends JFrame implements Runnable {
     boolean active = false;
     JFreeChart chart;
     ChartPanel chartPanel;
-    float lowest;
-    float highest;
+    float lowest = 0;
+    float highest = 100;
     float dataLow;
     float dataHigh;
     final int CHARTSIZE = 2000;
@@ -28,8 +28,6 @@ public class LineChartLive extends JFrame implements Runnable {
     public synchronized void run() {
         if (!active) {
             active = true;
-            lowest = Good.getLowest();
-            highest = Good.getHighest();
             chart.getCategoryPlot().setDataset(createDataset(Good.getAvgPriceList()));
             chart.getCategoryPlot().getRangeAxis().setRange((lowest * 0.99), (highest * 1.01));
             active = false;
