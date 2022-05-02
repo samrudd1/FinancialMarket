@@ -14,88 +14,149 @@ import utilities.SQLConnector;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Random;
 import java.util.logging.Logger;
 
 /**
- * This class represents agents, or the individuals buying and selling goods on the ownedGood.
+ * This class represents the AI agents that trade on the market
+ * @version 1.0
+ * @since 21/12/21
+ * @author github.com/samrudd1
  */
 @ToString
 public class Agent {
+
+    @Getter @Setter public static int nextID; //static int used to provide unique identifier for all agents
     private static final Logger LOGGER = Logger.getLogger(Agent.class.getName());
-    private int MIN_STARTING_FUNDS = 1000;
-    private final int MAX_STARTING_FUNDS = 1000000;
     private static final String AGENT_DATABASE = PropertiesLabels.getMarketDatabase();
+    @Getter @Setter private static boolean volatility = true; //changes the strategies running on the market
+    @Getter @Setter private static int sentAdjust = 0; //balances the sentiment system
+    @Getter @Setter private static int roundChange = 0; //when sentiment was last adjusts
+    @Getter @Setter private static int sentiment; //represents the overall social sentiment towards the company, 20 is neutral
 
-    @Getter private ArrayList<String> namesOwned = new ArrayList<>();
-    @Getter @Setter private int id;
-    @Getter @Setter private String name;
-    private float funds;
-    @Getter private final float startingFunds;
-    @Getter @Setter private float targetPrice;
-    @Getter @Setter private static int sentAdjust = 0;
-    @Getter @Setter private static int roundChange = -900;
-    private boolean agentLock;
-    private ArrayList<OwnedGood> goodsOwned = new ArrayList<>();
-    @Getter private Map<Integer,Float> fundData = new HashMap<Integer,Float>();
-    @Getter private final int startingRound;
-    private boolean placedBid;
-    private boolean placedAsk;
-    @Getter private ArrayList<Offer> bidsPlaced = new ArrayList<>();
-    @Getter private ArrayList<Offer> asksPlaced = new ArrayList<>();
-    @Getter @Setter private static int sentiment;
-    @Getter @Setter int chance;
-    @Setter private boolean prevPriceUp = false;
-    @Getter @Setter public static int ID;
+    @Getter @Setter private int id; //agent's id
+    @Getter @Setter private String name; //agent's name
+    private float funds; //current funds
+    @Getter private final float startingFunds; //starting money amount
+    @Getter private final int startingRound; //round agent started on
+    @Getter @Setter int strategy; //what strategy plan the agent is on
+    @Getter @Setter private float targetPrice; //what the agent believes is the fair value of the company
+    @Setter private boolean prevPriceUp = false; //used by the VWAP and momentum class so they don't trade in the same direction consecutively
+    private boolean agentLock; //concurrency lock
+    private boolean placedBid; //if the agent has placed a bid offer on the order book
+    private boolean placedAsk; //if the agent has placed an ask offer on the order book
+    private final int MIN_STARTING_FUNDS = 1000; //minimum possible starting funds
+    private final int MAX_STARTING_FUNDS = 8001000; //maximum possible starting funds
+    private final ArrayList<OwnedGood> goodsOwned = new ArrayList<>(); //list to hold for owned shares
+    @Getter private final ArrayList<String> namesOwned = new ArrayList<>(); //name of shares owned
+    @Getter private final ArrayList<Float> fundData = new ArrayList<>(); //tracks the value of the agent's portfolio each round
+    @Getter private final ArrayList<Offer> bidsPlaced = new ArrayList<>(); //list holding all current bid offers on the book
+    @Getter private final ArrayList<Offer> asksPlaced = new ArrayList<>(); //list holding all current ask offers on the book
 
-
+    /**
+     * Constructor used for making all new agents
+     */
     public Agent(){
         setAgentLock(false);
         Random rand = new Random();
-        chance = rand.nextInt(11);
-        id = ID;
-        ID += 1;//Make sure nextId is handled okay with concurrency
-        if (chance == 7) {
-            chance = 0;
+        strategy = rand.nextInt(21); //chooses which strategy the agent is on
+        id = nextID;
+        nextID += 1;
+
+        //all the if statements below assign the agents to their strategy plan
+        if (strategy == 10) {
+            strategy = 0;
         }
-        if (chance == 8) {
-            chance = 0;
+        if (strategy == 11) {
+            strategy = 0;
         }
-        if (chance == 9) {
-            chance = 6;
+        if (strategy == 12) {
+            strategy = 6;
         }
-        if (chance == 10) {
-            chance = 6;
+        if (strategy == 13) {
+            strategy = 6;
+        }
+        if (strategy == 14) {
+            strategy = 6;
+        }
+        if (strategy == 15) {
+            strategy = 2;
+        }
+        if (strategy == 16) {
+            strategy = 2;
+        }
+        if (strategy == 17) {
+            strategy = 7;
         }
 
-        if (chance == 1) {
+        //uses different mix on strategy based on the user's preference
+        if(!volatility) {
+            if (strategy == 1) {
+                strategy = 0;
+            }
+            if (strategy == 3) {
+                strategy = 8;
+            }
+            if (strategy == 9) {
+                strategy = 8;
+            }
+            if (strategy == 18) {
+                strategy = 7;
+            }
+            if (strategy == 19) {
+                strategy = 6;
+            }
+            if (strategy == 20) {
+                strategy = 2;
+            }
+        } else {
+            if (strategy == 18) {
+                strategy = 8;
+            }
+            if (strategy == 19) {
+                strategy = 8;
+            }
+            if (strategy == 20) {
+                strategy = 8;
+            }
+        }
+
+        if (strategy == 1) {
             name = "Momentum " + id;
-        } else if (chance == 2) {
-            name = "SentTrend " + id;
-        } else if (chance == 3) {
-            name = "High Frequency " + id;
-            //MIN_STARTING_FUNDS *= 10;
-        } else if (chance == 4) {
+        } else if (strategy == 2) {
+            name = "Sentiment Trend " + id;
+        } else if (strategy == 3) {
+            name = "VWAP " + id;
+        } else if (strategy == 4) {
             name = "RSI " + id;
-        } else if (chance == 5) {
+        } else if (strategy == 5) {
             name = "RSI10 " + id;
-        } else if (chance == 6) {
-            name = "OfferOnly " + id;
+        } else if (strategy == 6) {
+            name = "Offer Only " + id;
+        } else if (strategy == 7) {
+            name = "Both RSI " + id;
+        } else if (strategy == 8) {
+            name = "Aggressive Offers " + id;
+        } else if (strategy == 9) {
+            name = "VWAP and Momentum " + id;
         } else {
             name = "Default " + id;
         }
         funds = assignFunds();
         startingFunds = funds;
-        createTargetPrice();
-        fundData.put(Session.getNumOfRounds(),funds);
+        createTargetPrice(); //creates target price around the starting offer price
+        fundData.add(funds);
         this.startingRound = Session.getNumOfRounds();
-        Session.getAgents().put(id,this);
+        Session.getAgents().put(id,this); //adds the agent to the instance of Session
         //saveUser(true);
         setPrevPriceUp(false);
     }
 
+    /**
+     * This is the constructor used for the agent object to represent the company
+     * @param name sets the name of the company
+     * @param company to identify the constructor is for the company object
+     */
     public Agent(String name, boolean company){
         setAgentLock(false);
         id = (findId()); //Make sure nextId is handled okay with concurrency
@@ -103,92 +164,100 @@ public class Agent {
         funds = 0;
         startingFunds = funds;
         targetPrice = Good.getStartingPrice();
-        fundData.put(Session.getNumOfRounds(),funds);
+        fundData.add(funds);
         this.startingRound = Session.getNumOfRounds();
         Session.getAgents().put(id,this);
         //saveUser(true);
         setPrevPriceUp(false);
     }
 
-    /*
-    Agent(String name){
-        setAgentLock(false);
-        id = findId();
-        this.name = name.substring(0, 1).toUpperCase() + name.substring(1); //capitalizing
-        funds = assignFunds();
-        fundData.put(Session.getNumOfRounds(),funds);
-        this.startingRound = Session.getNumOfRounds();
-        Session.getAgents().put(id,this);
-        saveUser(true);
-    }
-    */
+    /**
+     * Constructor used by the populateAgents() method in Session class
+     * @param id id of the agent
+     * @param name name of the agent
+     * @param funds starting funds for the agent
+     */
     public Agent(int id, String name, float funds){
         setAgentLock(false);
         setPlacedBid(false);
         setPlacedAsk(false);
         Random rand = new Random();
-        chance = rand.nextInt(7);
+        strategy = rand.nextInt(7);
         this.id = id; //Make sure nextId is handled okay with concurrency
         this.name = name;
         this.funds = funds;
         startingFunds = funds;
         createTargetPrice();
-        fundData.put(Session.getNumOfRounds(),funds);
+        fundData.add(funds);
         this.startingRound = Session.getNumOfRounds();
         Session.getAgents().put(id,this);
         //saveUser(false);
         setPrevPriceUp(false);
     }
 
+    /**
+     * Sets the agents initial target price for the stock, target price can be created in a 10% range
+     */
     public void createTargetPrice() {
         Random rand = new Random();
         int chance = rand.nextInt(10);
-        targetPrice = (float) (((float) Math.round((chance + 98) * Good.getPrice())) * 0.01);
-        if (chance == 1) {
-            targetPrice = (float) (((float) Math.round((106) * Good.getPrice())) * 0.01);
-        } else if (chance == 4) {
-            targetPrice = (float) (((float) Math.round((106) * Good.getPrice())) * 0.01);
+        if ((strategy == 1) || (strategy == 3) || (strategy == 9)) {
+            //vwap and momentum don't want to buy at start
+            targetPrice = (float) (((float) Math.round((chance + 80) * Good.getPrice())) * 0.01);
+        } else {
+            targetPrice = (float) (((float) Math.round((chance + 95) * Good.getPrice())) * 0.01);
         }
         placedAsk = false;
         placedBid = false;
-        //LOGGER.info(name + " target price: " + targetPrice);
     }
+
+    /**
+     * changes the agents target price, this is affected by the sentiment value,
+     * a high sentiment value leads to a higher probability of a higher target price
+     */
     public void changeTargetPrice() {
         Random rand = new Random();
         int chance = rand.nextInt(sentiment) + sentAdjust;
         targetPrice = (float) (((float) Math.round((chance + 91) * targetPrice)) * 0.01);
-        //placedAsk = false;
-        //placedBid = false;
     }
 
     /**
-     * This takes the max and min funds values and returns a float between those two numbers
-     * @return a float between the minimum and maximum starting funds number
+     * this creates a random number between 0 and 200 and cubes it and adds 100
+     * this then is assigned as the starting funds for the agent
+     * @return The starting funds for the agent.
      */
     private float assignFunds(){
         Random rand = new Random();
-        int fundsInt = rand.nextInt((MAX_STARTING_FUNDS - MIN_STARTING_FUNDS) + 1 ) + MIN_STARTING_FUNDS;
-        return (float) fundsInt;
+        int fundsInt = rand.nextInt(201);
+        return (float) (MIN_STARTING_FUNDS + (fundsInt * fundsInt * fundsInt));
     }
 
-    public boolean getAgentLock() {
-        return agentLock;
-    }
-    public void setAgentLock(boolean val) {
-        agentLock = val;
-    }
+    //setters and getters
+    public boolean getAgentLock() { return agentLock; }
+    public void setAgentLock(boolean val) { agentLock = val; }
     public ArrayList<OwnedGood> getGoodsOwned() { return goodsOwned; }
     public boolean getPlacedAsk() { return placedAsk; }
     public boolean getPlacedBid() { return placedBid; }
     public void setPlacedAsk(boolean val) { this.placedAsk = val; }
     public void setPlacedBid(boolean val) { this.placedBid = val; }
+    public void setFunds(float newFunds){ this.funds = newFunds; }
+    public float getFunds() { return (((float)Math.round(this.funds * 100)) / 100); }
+    public boolean getPrevPriceUp() { return prevPriceUp; }
 
-
+    /**
+     * bid has been removed from the order book, so the funds are given back to the agent
+     * @param offer the offer that was removed
+     */
     public void removedBid(Offer offer) {
         funds = (funds + (offer.getNumOffered() * offer.getPrice()));
         placedBid = false;
         changeTargetPrice();
     }
+
+    /**
+     * ask has been removed from the order book, the shares are returned to the agent
+     * @param offer the ask offer that was removed
+     */
     public void removeAsk(Offer offer) {
         for (OwnedGood good: goodsOwned) {
             if (offer.getGood().getId() == good.getGood().getId()) {
@@ -199,22 +268,31 @@ public class Agent {
         changeTargetPrice();
     }
 
-
+    /**
+     * used in the Initial Public Offering
+     * allows the agent to decide if they want to buy shares from the offer
+     * @param wantToBuy how many whares they want to buy
+     * @param tc reference to the TradingCycle instance
+     */
     public void CheckInitial(int wantToBuy, TradingCycle tc) {
         Offer offer = Good.getAsk().get(0);
         if (getFunds() < (wantToBuy * offer.getPrice())) {
             wantToBuy = (int) Math.floor(getFunds() / offer.getPrice());
         }
-        //synchronized (tc) {
         if (wantToBuy > 0) {
             InitiateBuy ib1 = new InitiateBuy(this, offer, wantToBuy, tc);
             Runnable t1 = new Thread(ib1);
             t1.run();
-            //saveUser(false);
         }
-        //}
     }
 
+    /**
+     * Used to initiate the trade to buy shares from the company in the Initial Offering
+     * @param buyer the agent that is buying
+     * @param offer the offer from the company
+     * @param amountBought the number of shares being bought
+     * @param tc reference to the TradingCycle instance that can be notified when the trade is done
+     */
     private record InitiateBuy(@Getter Agent buyer, @Getter Offer offer, @Getter int amountBought, TradingCycle tc) implements Runnable {
 
         @Override
@@ -224,11 +302,13 @@ public class Agent {
             } catch (InterruptedException e) {
                 LOGGER.info("trade failed");
             }
-            //LOGGER.info("executing trade with " + buyer.getName() + " directly for " + amountBought + " share/s at a price of " + Good.getPrice() + " each.");
         }
     }
 
-
+    /**
+     * gets the next id from the database
+     * @return the next id for an agent
+     */
     private int findId(){
         int idToReturn = 0;
         try(SQLConnector connector = new SQLConnector()){
@@ -242,11 +322,17 @@ public class Agent {
         return idToReturn + 1;
     }
 
+    /**
+     * saves the user's information to the database
+     * @param isNew if the agent has been saved before
+     */
     public void saveUser(boolean isNew){
         String query;
         if(isNew){
+            //if the agent hasn't been saved before, then it is inserted in the database
             query = SQLQueries.createInsertQuery(this);
         } else {
+            //if the agent is already in the database, then it's record is updated
             query = SQLQueries.createUpdateQuery(this);
         }
         try(SQLConnector connector = new SQLConnector()){
@@ -257,37 +343,7 @@ public class Agent {
     }
 
     /**
-     * This deletes the referenced user from the MySQL database.
-     */
-    public void deleteUser(){
-        try(SQLConnector connector = new SQLConnector()){
-            connector.runUpdate(SQLQueries.createDeleteQuery(this),AGENT_DATABASE);
-        } catch (Exception e){
-            LOGGER.info("Error deleting agent with id " + this.getId() + " : " + e.getMessage());
-        }
-    }
-
-    /**
-     * This gets the most recent ID and is used for setting the static id.
-     * @return the highest ID number present in the agent table
-     */
-    private static int retrieveLatestId(){
-        int latestId = 0;
-        try(SQLConnector connector = new SQLConnector()){
-             ResultSet resultSet = connector.runQuery(SQLQueries.GET_HIGHEST_ID,AGENT_DATABASE);
-            while(resultSet.next()){
-                latestId = resultSet.getInt("id");
-            }
-            resultSet.close();
-        } catch (SQLException e) {
-            LOGGER.info("Error retrieving latest agent id: " + e.getMessage());
-        }
-        LOGGER.info("highest id is " + latestId);
-        return latestId;
-    }
-
-    /**
-     * This resets the AUTO_INCREMENT number in the database, mainly used so that tests correctly clean up after themselves but will be handy if there are large numbers of deletions for keeps id number sensibly sized.
+     * this resets the agent ID's at the start of the market
      */
     public static void resetAgentIncrement(){
         int highestId = 0;
@@ -310,14 +366,15 @@ public class Agent {
         }
     }
 
-    public void setFunds(float newFunds){
-        this.funds = newFunds;
-        fundData.put(Session.getNumOfRounds(),funds);
+    /**
+     * calculates the current portfolio value and adds it to the fundData list
+     * @param price the current stock price
+     */
+    public void addValue(float price) {
+        float value = funds;
+        if (goodsOwned.size() > 0) {
+            value += (goodsOwned.get(0).getNumOwned() * price);
+        }
+        fundData.add(value);
     }
-
-    public float getFunds() {
-        return (((float)Math.round(this.funds * 100)) / 100);
-    }
-
-    public boolean getPrevPriceUp() { return prevPriceUp; }
 }

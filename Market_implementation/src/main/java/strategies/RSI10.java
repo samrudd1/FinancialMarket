@@ -1,11 +1,21 @@
 package strategies;
 
 import agent.Agent;
+import good.Good;
 import good.Offer;
 import lombok.SneakyThrows;
 import trade.Exchange;
 import trade.TradingCycle;
 
+/**
+ * similar to the RSI class, but uses the RSI 10 value
+ * the RSI 10 value uses increments of 10 between rounds used in the equation rather than 1
+ * this allows the value to represent strength over longer periods of time
+ * this includes the last 140 rounds
+ * @version 1.0
+ * @since 13/04/22
+ * @author github.com/samrudd1
+ */
 public class RSI10 extends AbstractStrategy implements Runnable {
     Agent agent;
     TradingCycle tc;
@@ -18,23 +28,22 @@ public class RSI10 extends AbstractStrategy implements Runnable {
         this.roundNum = roundNum;
     }
 
+    /**
+     * runs algorithm on independent thread
+     */
     @SneakyThrows
     @Override
     public synchronized void run() {
-        //float lowestAsk = Exchange.getInstance().getGoods().get(0).getLowestAsk();
-        //float highestBid = Exchange.getInstance().getGoods().get(0).getHighestBid();
-        float price = Exchange.getInstance().getPriceCheck();
-        float rsi = Exchange.getRsiP();
+        float price = Good.getPrice();
+        float rsi = Exchange.getRsiP(); //RSI 10 value
 
         while(agent.getAgentLock()) wait();
         agent.setAgentLock(true);
 
-        if ((rsi >= 0) && (rsi <= 100)) {
-            if (rsi < 30) {
+        if ((rsi >= 0) && (rsi <= 100)) { //checks RSI 10 value is valid
+            if (rsi < 30) { //checks if RSI is over-sold
                 if (agent.getFunds() > price) {
-                    //if (lowestAsk != 99999) {
-                    double tradeMult = 0.4 + ((30 - rsi) * 0.02);
-                    //if ((lowestAsk / highestBid) < 101) {
+                    double tradeMult = 0.4 + ((30 - rsi) * 0.02); //calculates how much to buy based on the value, the lower the value, the better the buy opportunity
                     Offer offer = Exchange.getInstance().getGoods().get(0).getLowestAskOffer();
                     if (offer != null) {
                         int wantToBuy = (int) Math.floor((agent.getFunds() / offer.getPrice()) * tradeMult);
@@ -42,33 +51,18 @@ public class RSI10 extends AbstractStrategy implements Runnable {
                             wantToBuy = offer.getNumOffered();
                         }
                         if ((wantToBuy > 0) && (agent.getId() != offer.getOfferMaker().getId()) && (offer.getPrice() < (price * 1.03))) {
+                            //buys shares from the lowest ask
                             boolean success = Exchange.getInstance().execute(agent, offer.getOfferMaker(), offer, wantToBuy, tc, roundNum);
                             if (!success) {
                                 System.out.println("trade execution failed");
                             }
                         }
                     }
-                        /*
-                    } else {
-                        int wantToBuy;
-                        wantToBuy = (int) Math.floor((agent.getFunds() / (highestBid + 0.01)) * tradeMult);
-                        if (wantToBuy > 1000) { wantToBuy = 1000; }
-                        if (wantToBuy > 0) {
-                            float newPrice = (float)(((float)(Math.floor(Exchange.getInstance().getGoods().get(0).getHighestBid() * 100)+5)) * 0.01);
-                            if (newPrice < lowestAsk) {
-                                createBid(newPrice, Exchange.getInstance().getGoods().get(0), wantToBuy);
-                            }
-                        }
-                    }
-                         */
-                    //}
                 }
 
-            } else if (rsi > 70) {
+            } else if (rsi > 70) { //checks if RSI is over-bought
                 if (agent.getGoodsOwned().size() > 0) {
-                    //if (highestBid != 0) {
-                    double tradeMult = 0.4 + ((rsi - 70) * 0.02);
-                    //if ((lowestAsk / highestBid) < 101) {
+                    double tradeMult = 0.4 + ((rsi - 70) * 0.02); //calculates how much to sell based on the value, the higher the value, the better the sell opportunity
                     Offer offer = Exchange.getInstance().getGoods().get(0).getHighestBidOffer();
                     if (offer != null) {
                         int offering = (int) Math.floor((agent.getGoodsOwned().get(0).getNumAvailable() * tradeMult));
@@ -76,29 +70,18 @@ public class RSI10 extends AbstractStrategy implements Runnable {
                             offering = offer.getNumOffered();
                         }
                         if ((offering > 0) && (agent.getId() != offer.getOfferMaker().getId()) && (offer.getPrice() > (price * 0.98))) {
+                            //sells shares to the highest bid
                             boolean success = Exchange.getInstance().execute(offer.getOfferMaker(), agent, offer, offering, tc, roundNum);
                             if (!success) {
                                 System.out.println("trade execution failed");
                             }
                         }
                     }
-                        /*
-                    } else {
-                        if (offering > 0) {
-                            float newPrice = (float)(((float)(Math.floor(Exchange.getInstance().getGoods().get(0).getLowestAsk() * 100)-5)) * 0.01);
-                            if (newPrice > highestBid) {
-                                createAsk(newPrice, agent.getGoodsOwned().get(0), offering);
-                            }
-                        }
-                    }
-                         */
-                    //}
                 }
             }
         }
 
-        //agent.saveUser(false);
-        //cleanOffers(agent, price);
+        agent.addValue(Good.getPrice()); //tracks portfolio value
         agent.setAgentLock(false);
         notify();
         return;

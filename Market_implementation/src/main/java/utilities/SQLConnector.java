@@ -3,20 +3,24 @@ package utilities;
 import java.sql.*;
 import java.util.logging.Logger;
 
-public class SQLConnector implements AutoCloseable{
+/**
+ * used to communicate with the database
+ * @version 1.0
+ */
+public class SQLConnector implements AutoCloseable {
     private static final Logger LOGGER = Logger.getLogger(SQLConnector.class.getName());
-    private Statement statement;
-    private Connection connection;
+    private Statement statement; //statement sent to database
+    private Connection connection; //the SQL connection
 
     /**
-     *  This method uses jdbc to make a connection to the mysql server.
-     * @param database The database we need to connect to
+     *  this method uses jdbc to make a connection to the mysql server.
+     * @param database The database to connect to
      * @return the connection to the database, allowing for querying
      */
     static Connection makeConnection(String database){
         database = "marketdb";
         try {
-            // db parameters
+            // database parameters
             String url       = PropertiesLabels.getDbUrl() + database;
             String user      = PropertiesLabels.getDbUser();
             String password  = PropertiesLabels.getDbPassword();
@@ -29,8 +33,13 @@ public class SQLConnector implements AutoCloseable{
         }
     }
 
+    /**
+     * sends a query to the database
+     * @param query the message to send to the database
+     * @param database the database to connect to
+     * @return the results of the query
+     */
     public ResultSet runQuery(String query, String database){
-        //database = "marketdb";
         if(isClosed()) open(database);
         try {
             if(statement != null){
@@ -42,8 +51,13 @@ public class SQLConnector implements AutoCloseable{
         return null;
     }
 
+    /**
+     * updates a record in the database
+     * @param query the message sent to the database
+     * @param database the database that the message is sent to
+     * @return confirmation of update completion
+     */
     public boolean runUpdate(String query, String database){
-        //database = "marketdb";
         if(isClosed()) open(database);
         boolean didUpdate = false;
         try {
@@ -58,8 +72,11 @@ public class SQLConnector implements AutoCloseable{
         return didUpdate;
     }
 
+    /**
+     * opens the connection to the database
+     * @param database the database that is being connected with
+     */
     private void open(String database){
-        //database = "marketdb";
         if(connection != null || statement != null){
             close();
         }
@@ -73,6 +90,9 @@ public class SQLConnector implements AutoCloseable{
         }
     }
 
+    /**
+     * closes the database connection
+     */
     public void close(){
         try{
             if(connection != null){
@@ -88,6 +108,10 @@ public class SQLConnector implements AutoCloseable{
         }
     }
 
+    /**
+     * checks connection is closed
+     * @return if connection is closed
+     */
     private boolean isClosed(){
         return statement == null && connection == null;
     }

@@ -1,7 +1,0 @@
-{
-  "testString" : "test",
-  "dbUrl" : "jdbc:mysql://192.168.0.70:3306/",
-  "dbUser" : "marketuser",
-  "dbPassword" : "marketpass",
-  "marketDatabase" : "marketdb"
-}

@@ -8,18 +8,17 @@ import trade.Exchange;
 import trade.TradingCycle;
 
 /**
- * trades based on the sentiment value that affects the target price of other strategies
- * this allows the strategy to trade before an expected move in price
+ * trades when the price moves above or below the Volume Weighted Average Price
  * @version 1.0
- * @since 10/03/22
+ * @since 29/04/22
  * @author github.com/samrudd1
  */
-public class SentimentTrend extends AbstractStrategy implements Runnable {
+public class VWAP extends AbstractStrategy implements Runnable {
     Agent agent;
     TradingCycle tc;
     int roundNum;
 
-    public SentimentTrend(Agent agent, TradingCycle tc, int roundNum) {
+    public VWAP(Agent agent, TradingCycle tc, int roundNum) {
         super(agent, tc, roundNum);
         this.agent = agent;
         this.tc = tc;
@@ -27,27 +26,28 @@ public class SentimentTrend extends AbstractStrategy implements Runnable {
     }
 
     /**
-     * runs algorithm on independent thread
+     * runs strategy on independent thread
      */
     @SneakyThrows
     @Override
     public synchronized void run() {
-        float price = Exchange.getInstance().getPriceCheck();
+        float price = Good.getPrice();
         while(agent.getAgentLock()) wait();
         agent.setAgentLock(true);
 
-        if (Agent.getSentiment() > 21) { //if good positive sentiment
+        if ((price > Good.getVwap()) && (!agent.getPrevPriceUp())) { //if price has moved above VWAP and the agent hasn't just bought
             if (agent.getFunds() > price) {
                 Offer offer = Exchange.getInstance().getGoods().get(0).getLowestAskOffer();
                 if (offer != null) {
                     int wantToBuy;
-                    wantToBuy = (int) Math.floor((agent.getFunds() / offer.getPrice()) * 0.5); //finds how much to buy
+                    wantToBuy = (int) Math.floor(agent.getFunds() / offer.getPrice());
                     if (offer.getNumOffered() < wantToBuy) {
                         wantToBuy = offer.getNumOffered();
                     }
-                    if (offer.getPrice() < (price * 1.02)) {
+                    if (offer.getPrice() < (price * 1.01)) {
                         if ((wantToBuy > 0) && (agent.getId() != offer.getOfferMaker().getId())) {
-                            //buys from lowest ask if it is close to the last traded price
+                            agent.setPrevPriceUp(true); //stops the agent buying consecutively, chasing the trend
+                            //buys from the lowest ask if it is close to the last traded price
                             boolean success = Exchange.getInstance().execute(agent, offer.getOfferMaker(), offer, wantToBuy, tc, roundNum);
                             if (!success) {
                                 System.out.println("trade execution failed");
@@ -57,20 +57,18 @@ public class SentimentTrend extends AbstractStrategy implements Runnable {
                 }
             }
 
-        } else  if (Agent.getSentiment() < 18){ //if negative sentiment
+        } else  if ((price < Good.getVwap()) && (agent.getPrevPriceUp())) { //if price has moved below VWAP and the agent hasn't just sold
             if (agent.getGoodsOwned().size() > 0) {
                 Offer offer = Exchange.getInstance().getGoods().get(0).getHighestBidOffer();
                 if (offer != null) {
                     int offering = (int) Math.floor(agent.getGoodsOwned().get(0).getNumAvailable());
-                    if (offering > 5) {
-                        offering = (int) Math.floor((agent.getGoodsOwned().get(0).getNumAvailable() * 0.5)); //finds how much to sell
-                    }
                     if (offer.getNumOffered() < offering) {
                         offering = offer.getNumOffered();
                     }
-                    if (offer.getPrice() > (price * 0.98)) {
+                    if (offer.getPrice() > (price * 0.99)) {
                         if (offering > 0) {
-                            //sells to highest bid if it is close to last traded price
+                            agent.setPrevPriceUp(false); //stops the agent selling consecutively, chasing the trend
+                            //sells to the highest bid if it is close to the last traded price
                             boolean success = Exchange.getInstance().execute(offer.getOfferMaker(), agent, offer, offering, tc, roundNum);
                             if (!success) {
                                 System.out.println("trade execution failed");

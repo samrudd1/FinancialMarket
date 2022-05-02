@@ -1,5 +1,10 @@
 package session;
 
+/**
+ * this class purely contains the queries used in the session package
+ * this is to make the other classes more readable
+ * @version 1.0
+ */
 public class SQLQueries {
 
     private SQLQueries(){}

@@ -16,43 +16,35 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 /**
- * The session class is responsible for keeping track of what is going on in each round of execution and will handle database communication.
+ * this is used to establish a connection with the database and act as a central data point in the program
+ * @version 1.0
  */
 public class Session {
     private static final Logger LOGGER = Logger.getLogger(Session.class.getName());
     private static final String SESSION_DATABASE = PropertiesLabels.getMarketDatabase();
-    private static boolean isOpen = false;
-    @Getter @Setter private static int numAgents;
-    @Getter private static Map<Integer, Agent> agents = new HashMap<>();
-    @Getter private static ArrayList<Agent> agentsToDelete = new ArrayList<>();
-    @Getter private static ArrayList<Agent> agentsToUpdate = new ArrayList<>();
-    @Getter private static ArrayList<Good> goods = new ArrayList<>();
-    @Getter private static ArrayList<Good> directGoods = new ArrayList<>();
-    @Getter private static ArrayList<Good> goodsToDelete = new ArrayList<>();
-    @Getter private static ArrayList<Good> goodsToUpdate = new ArrayList<>();
-    @Getter private static Map<String,OwnedGood> ownerships = new HashMap<>();
-    @Getter private static ArrayList<OwnedGood> ownershipsToDelete = new ArrayList<>();
-    @Getter private static ArrayList<OwnedGood> ownershipsToUpdate = new ArrayList<>();
+    private static boolean isOpen = false; //if the connection to the database is open
+    @Getter @Setter private static int numAgents; //number of agents currently on the market
+    @Getter private static final Map<Integer, Agent> agents = new HashMap<>(); //map of all agents
+    @Getter private static final ArrayList<Good> goods = new ArrayList<>(); //contains the stock object
+    @Getter private static final Map<String,OwnedGood> ownerships = new HashMap<>(); //keeps track of stock ownerships
     @Getter @Setter private static int numOfRounds = 0;
 
     /**
-     * Private constructor as we don't want instantiation.
+     * private constructor to prevent instantiation.
      */
     private Session(){}
 
     /**
-     * Retrieve the data needed from MySQL.
-     * @return true if the session has been opened successfully.
+     * retrieves data from database if it is there
+     * @return true if the session has been opened successfully
      */
     public static boolean openSession(){
         if(isOpen){
             LOGGER.info("Session is already open.");
             return false;
         } else {
-            //retrieve agents
             boolean agentsPopulated = populateAgents();
             boolean goodsPopulated = populateGoods();
-            //ownership MUST be populated after agents and goods
             boolean ownershipsPopulated = populateOwnerShip();
             Agent.resetAgentIncrement();
             Good.resetGoodIncrement();
@@ -61,11 +53,16 @@ public class Session {
 
     }
 
+    /**
+     * pulls data of stock ownerships from the database
+     * @return if the connection was successful
+     */
     private static boolean populateOwnerShip(){
         boolean didOpen = true;
         try(SQLConnector connector = new SQLConnector()){
             Agent.resetAgentIncrement();
             ResultSet resultSet = connector.runQuery(SQLQueries.GET_OWNERSHIPS,SESSION_DATABASE);
+
             while(resultSet.next()){
                 int goodId = resultSet.getInt("good_id");
                 int agentId = resultSet.getInt("agent_id");
@@ -91,6 +88,10 @@ public class Session {
         return didOpen;
     }
 
+    /**
+     * creates agent objects if there was data in the database
+     * @return if the connection was successful
+     */
     private static boolean populateAgents(){
         boolean didOpen = true;
         try(SQLConnector connector = new SQLConnector()){
@@ -111,6 +112,10 @@ public class Session {
         return didOpen;
     }
 
+    /**
+     * creates a stock object if there is data in the database
+     * @return if the connection was successful
+     */
     private static boolean populateGoods(){
         boolean didOpen = true;
         try(SQLConnector connector = new SQLConnector()){
@@ -122,10 +127,7 @@ public class Session {
                 float price = resultSet.getFloat("price");
                 float prevPrice = resultSet.getFloat("prevPrice");
                 int amountAvailable = resultSet.getInt("amountAvailable");
-                int amountUnsold = resultSet.getInt("amountUnsold");
-                int supply = resultSet.getInt("supply");
-                int demand = resultSet.getInt("demand");
-                new Good(id,name,price,prevPrice,amountAvailable,amountUnsold,supply,demand);
+                new Good(id,name,price,prevPrice,amountAvailable);
             }
             resultSet.close();
             isOpen = true;
@@ -135,82 +137,4 @@ public class Session {
         }
         return didOpen;
     }
-
-    /**
-     * save the data needed in MySQL.
-     * @return true if the session has been closed successfully.
-     */
-    public static boolean closeSession(){
-        numOfRounds++;
-        if(!isOpen){
-            LOGGER.info("No Session is currently open.");
-            return false;
-        } else {
-            boolean didClose = false;
-            try{
-                //makeCharts();
-                //deleteOwnership();
-                //deleteAgents();
-                //deleteGoods();
-                //Agent.resetAgentIncrement();
-                //Good.resetGoodIncrement();
-                //clearLists();
-                didClose = true;
-                isOpen = false;
-            } catch (Exception e){
-                LOGGER.info("Error writing agent changes to MySQL: " + e.getMessage());
-            }
-            return didClose;
-        }
-    }
-
-    /**
-     * When closing a session all lists are cleared.
-     */
-    private static void clearLists(){
-        /*
-        Agent.resetAgentIncrement();
-        Good.resetGoodIncrement();
-        agents.clear();
-        agentsToDelete.clear();
-        agentsToUpdate.clear();
-        goods.clear();
-        goodsToDelete.clear();
-        goodsToUpdate.clear();
-        ownerships.clear();
-        ownershipsToDelete.clear();
-        ownershipsToUpdate.clear();
-         */
-    }
-
-
-    /**
-     * Deletes existing agents no longer needed.
-     */
-    private static void deleteAgents(){
-        for(Agent agent : agentsToDelete){
-            agent.deleteUser();
-        }
-    }
-
-    /**
-     * Deletes existing goods no longer needed.
-     */
-    private static void deleteGoods(){
-        for(Good good : goodsToDelete){
-            good.deleteGood();
-        }
-    }
-
-
-    /**
-     * Deletes existing ownerships no longer needed.
-     */
-    private static void deleteOwnership(){
-        for(OwnedGood owned : ownershipsToDelete){
-            owned.delete();
-        }
-    }
-
-
 }

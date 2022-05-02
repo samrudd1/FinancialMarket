@@ -3,8 +3,9 @@ package agent;
 import good.Good;
 
 /**
- * This class purely contains all of the queries used in the agent package.
- * This is to make the other classes more readable
+ * this class purely contains all of the queries used in the agent package
+ * this is to make the other classes more readable
+ * @version 1.0
  */
 class SQLQueries {
 
@@ -29,7 +30,7 @@ class SQLQueries {
     /**
      * Takes an agent and creates a query to add it to the database
      * @param agent the agent to be inserted
-     * @return the query needing to be used to perform insertion.
+     * @return the query needing to be used to perform insertion
      */
     static String createInsertQuery(Agent agent){
         //name,funds,value,startingValue,numShares,percent
@@ -50,9 +51,9 @@ class SQLQueries {
     }
 
     /**
-     * Takes an owned ownedGood and creates a query to add it to the database
+     * takes an owned ownedGood and creates a query to add it to the database
      * @param ownedGood the owned ownedGood to be inserted
-     * @return the query needing to be used to perform insertion.
+     * @return the query needing to be used to perform insertion
      */
     static String createInsertQuery(OwnedGood ownedGood){
         String data = ownedGood.getOwner().getId() + "," + ownedGood.getGood().getId() + "," + ownedGood.getNumOwned() + "," + (((float)Math.round(ownedGood.getGood().getPrice() * 100)) / 100);
@@ -60,7 +61,7 @@ class SQLQueries {
     }
 
     /**
-     * Creates a query for updating existing agents
+     * creates a query for updating existing agents
      * @param agent the agent that needs to be updated
      * @return the query needed
      */
@@ -86,7 +87,7 @@ class SQLQueries {
     }
 
     /**
-     * Creates a query for updating existing agents
+     * creates a query for updating existing agents
      * @param ownedGood the agent that needs to be updated
      * @return the query needed
      */
@@ -103,7 +104,7 @@ class SQLQueries {
     }
 
     /**
-     * Creates a query to delete a user from the database
+     * creates a query to delete a user from the database
      * @param agent the agent needing to be deleted
      * @return the query needed
      */
@@ -113,7 +114,7 @@ class SQLQueries {
     }
 
     /**
-     * Creates a query to delete an owned ownedGood from the database
+     * creates a query to delete an owned ownedGood from the database
      * @param ownedGood the owned ownedGood needing to be deleted
      * @return the query needed
      */
@@ -127,7 +128,7 @@ class SQLQueries {
     }
 
     /**
-     * Creates the query needed to reset the AUTO_INCREMENT number in the database
+     * creates the query needed to reset the AUTO_INCREMENT number in the database
      * @param id the highest existing id in the database
      * @return the query needed
      */

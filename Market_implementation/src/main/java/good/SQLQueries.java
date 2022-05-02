@@ -1,4 +1,10 @@
 package good;
+
+/**
+ * this class purely contains all of the queries used in the good package
+ * this is to make the other classes more readable
+ * @version 1.0
+ */
 public class SQLQueries {
 
     private SQLQueries(){}
@@ -20,9 +26,9 @@ public class SQLQueries {
     private static final String RESET_INCREMENT = "ALTER TABLE good AUTO_INCREMENT = @id ";
 
     /**
-     * Takes a ownedGood and creates a query to add it to the database
+     * takes an ownedGood and creates a query to add it to the database
      * @param good the ownedGood to be inserted
-     * @return the query needing to be used to perform insertion.
+     * @return the query needing to be used to perform insertion
      */
     static String createInsertQuery(Good good){
         String data = "'" + Good.getName() + "' , " + good.getPrice() + "," + 0 + "," + Good.getOutstandingShares() + "," + Good.getDirectlyAvailable() + "," + 0 + "," + 0;
@@ -30,7 +36,7 @@ public class SQLQueries {
     }
 
     /**
-     * Creates a query for updating existing goods
+     * creates a query for updating existing goods
      * @param good the ownedGood that needs to be updated
      * @return the query needed
      */
@@ -54,7 +60,7 @@ public class SQLQueries {
     }
 
     /**
-     * Creates a query to delete a ownedGood from the database
+     * creates a query to delete an ownedGood object from the database
      * @param good the ownedGood needing to be deleted
      * @return the query needed
      */
@@ -64,7 +70,7 @@ public class SQLQueries {
     }
 
     /**
-     * Creates the query needed to reset the AUTO_INCREMENT number in the database
+     * creates the query needed to reset the AUTO_INCREMENT number in the database
      * @param id the highest existing id in the database
      * @return the query needed
      */
