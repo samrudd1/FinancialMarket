@@ -14,7 +14,7 @@ public class PropertiesLabels {
     private PropertiesLabels(){}
 
     @Getter private final static String marketDatabase = "marketdb";
-    @Getter private final static String dbPassword = "marketpass";
-    @Getter private final static String dbUser = "marketuser";
-    @Getter private final static String dbUrl = "jdbc:mysql://192.168.56.101:3306/";
+    @Getter private final static String dbPassword = "password";
+    @Getter private final static String dbUser = "username";
+    @Getter private final static String dbUrl = "jdbc:mysql://127.0.0.1:3306/";
 }
