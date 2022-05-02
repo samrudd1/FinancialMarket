@@ -2,6 +2,10 @@ CREATE TABLE `agent` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(50) NOT NULL,
   `funds` float NOT NULL,
+  `value` float NOT NULL,
+  `startingValue` float NOT NULL,
+  `numShares` float NOT NULL,
+  `percent` float NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1
 
